@@ -4,7 +4,7 @@
 > Source of truth: `PLAN.md` (full project plan) + the two PDFs.
 
 **Last updated:** 2026-08-11
-**Overall status:** Milestones 0–4 complete & verified. Next: Milestone 5 (Tasks).
+**Overall status:** Milestones 0–5 complete & verified. Next: Milestone 6 (Bilingual Notes).
 
 ---
 
@@ -17,7 +17,8 @@
 | 2 | Authentication | ✅ Done | Login/register/logout/session, password reset, profile mgmt, settings |
 | 3 | Database | ✅ Done & verified | All 6 tables + FKs + indexes + RLS in `supabase/schema.sql`; RLS isolation tested with two real accounts |
 | 4 | Courses | ✅ Done & verified | Full CRUD + course cards grid + detail page; CRUD live-tested against Supabase |
-| 5 | Tasks | ⏭️ NEXT | CRUD, status, priority, search/filter/sort |
+| 5 | Tasks | ✅ Done & verified | CRUD, status, priority, search, filters, sorting, course-linked tasks on detail page |
+| 6 | Notes | ⏭️ NEXT | Bilingual EN/CN, tags, search |
 | 4 | Courses | ⬜ Pending | CRUD + detail page |
 | 5 | Tasks | ⬜ Pending | CRUD, status, priority, search/filter/sort |
 | 6 | Notes | ⬜ Pending | Bilingual EN/CN, tags, search |
@@ -75,6 +76,14 @@
 - **Course detail page:** header with color/status/target date, edit form, placeholder sections for tasks/notes/goals/sessions
 - **Live verification:** full CRUD (create → update → list → get → delete) tested against the real Supabase DB ✅, routes `/app/courses` + `/app/courses/:id` HTTP 200 ✅
 
+### Milestone 5
+- **Tasks service** (`src/services/tasks.ts`): CRUD + `listTasks` with course/status filters and ilike search + `patchTaskStatus`
+- **Tasks store** (`src/stores/tasks.ts`): cached list, `filters` (courseId/status/search), `sortKey` (created/dueDate/priority/title), `filteredTasks` computed, CRUD + toggle
+- **`TaskFormModal`** (`src/components/tasks/`): title, description, course selector (from courses store), status, priority, due date, estimated minutes — zod-validated
+- **Tasks page:** toolbar (search + status/course/sort selects), task rows with done-toggle, status/priority badges, course color chip, overdue highlighting (date-fns), empty + no-match states, delete confirm
+- **Course detail page:** live tasks section — toggle done, new task pre-linked to the course, delete with confirm
+- **Live verification:** task CRUD + course filter + status filter + ilike search + update + delete all tested against the real DB ✅, `/app/tasks` HTTP 200 ✅
+
 ### Key files
 ```
 PLAN.md                    # project plan (source of truth)
@@ -91,21 +100,21 @@ src/types/index.ts         # domain types
 
 ---
 
-## Next Steps — Milestone 5 (Tasks)
+## Next Steps — Milestone 6 (Bilingual Notes)
 
-1. Create `src/services/tasks.ts` (CRUD over `tasks`, filterable by course/status/search).
-2. Create a Pinia `tasks` store (or fetch-per-page).
-3. Tasks page: list with status/priority/due date, search box, status + course filters, sorting.
-4. Task form modal (title, description, course link, status, priority, due date, estimated minutes).
-5. Update the course detail page tasks section to use real data.
+1. Create `src/services/notes.ts` (CRUD; tags as `text[]`, search via ilike on title + GIN `@>` on tags).
+2. Create a Pinia `notes` store (list, filters, CRUD) + tag input in the form.
+3. Notes page: list of notes (title, course chip, tags), search, tag filter, edit/delete.
+4. Note form modal: title, English content, Chinese content (side-by-side or stacked), tags, course selector.
+5. Wire notes into the course detail page.
 6. Verify: typecheck, lint, build; run manually.
-7. Then Milestone 6 (Notes).
+7. Then Milestone 7 (Study Sessions timer).
 
 ---
 
 ## Open Items / Decisions
 
-- [ ] **Milestones 2–4 not committed yet.** Last commit was `feat(foundation)`. Commit when ready (suggest `feat(auth)`, `feat(database)`, `feat(courses)`).
+- [ ] **Milestone 5 not committed yet.** Last commit was `feat(courses)`. Commit when ready (`feat(tasks)`).
 - [ ] **Email confirmation is currently OFF** in Supabase (toggled for RLS testing) — re-enable in Authentication → Sign In / Up → Email if you want it on.
 - [ ] Test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com` exist in the project (can delete in Authentication → Users).
 - [ ] The old unconfirmed test user `test-1786457662863@studynest.dev` can be deleted too.
