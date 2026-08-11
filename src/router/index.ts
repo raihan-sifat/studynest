@@ -70,6 +70,11 @@ const router = createRouter({
           component: () => import('@/pages/NotesPage.vue'),
         },
         {
+          path: 'sessions',
+          name: 'sessions',
+          component: () => import('@/pages/StudySessionsPage.vue'),
+        },
+        {
           path: 'goals',
           name: 'goals',
           component: () => import('@/pages/GoalsPage.vue'),

@@ -4,7 +4,7 @@
 > Source of truth: `PLAN.md` (full project plan) + the two PDFs.
 
 **Last updated:** 2026-08-11
-**Overall status:** Milestones 0–6 complete & verified. Next: Milestone 7 (Study Sessions timer).
+**Overall status:** Milestones 0–7 complete & verified. Next: Milestone 8 (Goals).
 
 ---
 
@@ -19,7 +19,8 @@
 | 4 | Courses | ✅ Done & verified | Full CRUD + course cards grid + detail page; CRUD live-tested against Supabase |
 | 5 | Tasks | ✅ Done & verified | CRUD, status, priority, search, filters, sorting, course-linked tasks on detail page |
 | 6 | Notes | ✅ Done & verified | Bilingual EN/CN notes, tag editor, tag filter, search, course-linked notes on detail page |
-| 7 | Study Sessions | ⏭️ NEXT | Timer, pause/resume, duration math |
+| 7 | Study Sessions | ✅ Done & verified | Refresh-safe timer, pause/resume, focus rating, daily/weekly/monthly totals |
+| 8 | Goals | ⏭️ NEXT | Target/current values, deadline, status, progress calculations |
 | 4 | Courses | ⬜ Pending | CRUD + detail page |
 | 5 | Tasks | ⬜ Pending | CRUD, status, priority, search/filter/sort |
 | 6 | Notes | ⬜ Pending | Bilingual EN/CN, tags, search |
@@ -94,6 +95,16 @@
 - **Course detail page:** live notes section (list + tag chips + quick-create tied to the course)
 - **Live verification:** bilingual create, tag `contains` filter, content search, tag update, delete + cleanup ✅, `/app/notes` HTTP 200 ✅
 
+### Milestone 7
+- **`src/utils/time.ts`** (testable): `formatElapsed` (HH:MM:SS), `formatMinutes`, `sessionDurationMinutes` (stored value with ended-started fallback), `totalMinutes`, `totalMinutesForPeriod` for day/week/month boundaries (ISO week, local tz), `formatSessionTime`
+- **`src/services/studySessions.ts`**: list (course filter + limit), create, update, delete; rows insert with `duration_minutes`, `focus_rating`, `description`
+- **`src/stores/studySessions.ts`**: sessions list; **refresh-safe active timer** persisted to localStorage — state tracks `originalStartedAt` (wall-clock start, survives pause/resume), segment `startedAt`, `accumulatedMs`, `paused`; `elapsedMs(now)` computes paused-or-running elapsed; start/pause/resume/discard/finish (creates row, clears storage); `totals` computed via utils; `sessionsForCourse`
+- **`FinishSessionModal`**: 1–5 star focus rating (required) + optional description textarea
+- **Study Sessions page** (`/app/sessions`): live timer card (1s tick interval, monospace HH:MM:SS, Pause/Resume/Finish/Discard), course selector on start (also doubles as list filter), Today/This week/This month total cards, recent sessions list (course dot, time, duration, ★ rating, description, delete confirm), course filter, empty/no-match states
+- **Course detail page:** live study sessions card (last 5, total focused time for the course, "Start session" links to timer, delete)
+- **App layout:** "Sessions" nav item (Timer icon) added between Notes and Goals
+- **Live verification:** session create/update/delete + course filter + CHECK constraint rejections (`duration_minutes=0`, `focus_rating=9`) ✅; time utils math verified in Node (format cases + period totals) ✅; `/app/sessions` HTTP 200 ✅
+
 ### Key files
 ```
 PLAN.md                    # project plan (source of truth)
@@ -110,21 +121,21 @@ src/types/index.ts         # domain types
 
 ---
 
-## Next Steps — Milestone 7 (Study Sessions)
+## Next Steps — Milestone 8 (Goals)
 
-1. `src/services/studySessions.ts` — insert completed sessions (started_at, ended_at, duration_minutes, focus_rating, description, course_id), list with totals.
-2. `src/utils/time.ts` — testable duration formatting/aggregation helpers (per playbook: calculations in testable utilities).
-3. Pinia `studySessions` store — active session state + persisted sessions list.
-4. Study Sessions page: start/pause/resume/finish timer (survives refresh/navigation — store start timestamp, compute elapsed), focus rating after finish, course selector, session notes, daily/weekly/monthly totals.
-5. Wire sessions into the course detail page.
-6. Verify: typecheck, lint, build; run manually (refresh mid-session!).
-7. Then Milestone 8 (Goals).
+1. `src/services/goals.ts` — CRUD; goal fields: title, description, course_id, target_value, current_value, deadline, status (active/achieved/archived).
+2. `src/utils/progress.ts` — testable progress calculation (`current/target` clamped 0–100, status auto-detection for overdue/achieved).
+3. Pinia `goals` store — list, filters (status/course), progress updates (validate 0 ≤ current ≤ target where sensible), CRUD.
+4. Goals page: progress bars, deadline countdown/overdue states, status badges, add/edit modal, delete confirm.
+5. Wire goals into the course detail page (replacing the Milestone 8 placeholder card).
+6. Verify: typecheck, lint, build; run manually.
+7. Then Milestone 9 (Dashboard).
 
 ---
 
 ## Open Items / Decisions
 
-- [ ] **Milestone 6 not committed yet.** Last commit was `feat(tasks)`. Commit when ready (`feat(notes)`).
+- [ ] **Milestone 7 not committed yet.** Last commit was `docs: update progress log for milestone 6`. Commit when ready (`feat(study-sessions)`).
 - [ ] **Email confirmation is currently OFF** in Supabase (toggled for RLS testing) — re-enable in Authentication → Sign In / Up → Email if you want it on.
 - [ ] Test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com` exist in the project (can delete in Authentication → Users).
 - [ ] The old unconfirmed test user `test-1786457662863@studynest.dev` can be deleted too.

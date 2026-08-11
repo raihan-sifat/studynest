@@ -14,6 +14,7 @@ import {
   StickyNote,
   Sun,
   Target,
+  Timer,
 } from '@lucide/vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
@@ -30,6 +31,7 @@ const navItems = [
   { to: { name: 'courses' }, label: 'Courses', icon: BookOpen },
   { to: { name: 'tasks' }, label: 'Tasks', icon: ListTodo },
   { to: { name: 'notes' }, label: 'Notes', icon: StickyNote },
+  { to: { name: 'sessions' }, label: 'Sessions', icon: Timer },
   { to: { name: 'goals' }, label: 'Goals', icon: Target },
   { to: { name: 'calendar' }, label: 'Calendar', icon: CalendarDays },
   { to: { name: 'analytics' }, label: 'Analytics', icon: BarChart3 },

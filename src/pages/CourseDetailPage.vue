@@ -2,11 +2,13 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { format, isPast, startOfToday } from 'date-fns'
-import { ArrowLeft, BookOpen, CalendarDays, Check, CheckSquare, ListTodo, Pencil, Plus, StickyNote, Target, Trash2 } from '@lucide/vue'
+import { ArrowLeft, BookOpen, CalendarDays, Check, CheckSquare, ListTodo, Pencil, Play, Plus, StickyNote, Target, Timer, Trash2 } from '@lucide/vue'
 import { useCoursesStore } from '@/stores/courses'
 import { useTasksStore } from '@/stores/tasks'
 import { useNotesStore } from '@/stores/notes'
-import type { Course, Note, Task } from '@/types'
+import { useStudySessionsStore } from '@/stores/studySessions'
+import type { Course, Note, StudySession, Task } from '@/types'
+import { formatMinutes, formatSessionTime, totalMinutes } from '@/utils/time'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -22,6 +24,7 @@ const router = useRouter()
 const coursesStore = useCoursesStore()
 const tasksStore = useTasksStore()
 const notesStore = useNotesStore()
+const sessionsStore = useStudySessionsStore()
 
 const courseId = computed(() => String(route.params.id ?? ''))
 const course = ref<Course | null>(null)
@@ -34,6 +37,8 @@ const deletingTask = ref<Task | null>(null)
 const deleting = ref(false)
 const deletingNote = ref<Note | null>(null)
 const deletingNoteBusy = ref(false)
+const deletingSession = ref<StudySession | null>(null)
+const deletingSessionBusy = ref(false)
 
 const statusLabels: Record<string, string> = {
   active: 'Active',
@@ -48,6 +53,10 @@ const courseTasks = computed(() =>
 const courseNotes = computed(() =>
   notesStore.notes.filter((note) => note.courseId === courseId.value),
 )
+
+const courseSessions = computed(() => sessionsStore.sessionsForCourse(courseId.value))
+
+const courseSessionMinutes = computed(() => totalMinutes(courseSessions.value))
 
 const overdueIds = computed(() => {
   const today = startOfToday()
@@ -78,6 +87,7 @@ async function load(): Promise<void> {
   }
   await tasksStore.fetchTasks()
   await notesStore.fetchNotes()
+  await sessionsStore.fetchSessions()
   loading.value = false
 }
 
@@ -115,6 +125,19 @@ async function confirmDeleteNote(): Promise<void> {
   deletingNoteBusy.value = false
   if (ok) {
     deletingNote.value = null
+  }
+}
+
+async function confirmDeleteSession(): Promise<void> {
+  const session = deletingSession.value
+  if (!session) {
+    return
+  }
+  deletingSessionBusy.value = true
+  const ok = await sessionsStore.removeSession(session.id)
+  deletingSessionBusy.value = false
+  if (ok) {
+    deletingSession.value = null
   }
 }
 </script>
@@ -299,15 +322,76 @@ async function confirmDeleteNote(): Promise<void> {
         </BaseCard>
 
         <BaseCard>
-          <div class="flex items-center gap-2">
-            <CalendarDays :size="18" class="text-accent" />
-            <h3 class="font-semibold text-primary">Study sessions</h3>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Timer :size="18" class="text-accent" />
+              <h3 class="font-semibold text-primary">Study sessions</h3>
+              <span class="rounded-md bg-background px-1.5 py-0.5 text-xs text-secondary">
+                {{ courseSessions.length }}
+              </span>
+            </div>
+            <BaseButton
+              size="sm"
+              variant="secondary"
+              @click="router.push({ name: 'sessions' })"
+            >
+              <Play :size="14" />
+              Start session
+            </BaseButton>
           </div>
-          <EmptyState
-            :icon="CalendarDays"
-            title="No sessions yet"
-            description="Study sessions for this course will appear here in Milestone 7."
-          />
+
+          <p v-if="courseSessions.length" class="mt-2 text-xs text-secondary">
+            Total focused time in this course:
+            <span class="font-semibold text-accent">{{ formatMinutes(courseSessionMinutes) }}</span>
+          </p>
+
+          <div v-if="sessionsStore.loading" class="mt-3 space-y-2">
+            <div v-for="i in 2" :key="i" class="h-12 animate-pulse rounded-lg bg-background" />
+          </div>
+
+          <div v-else-if="courseSessions.length === 0" class="mt-2">
+            <EmptyState
+              :icon="Timer"
+              title="No sessions yet"
+              description="Start the timer and track focused study time for this course."
+            />
+          </div>
+
+          <ul v-else class="mt-3 space-y-2">
+            <li
+              v-for="session in courseSessions.slice(0, 5)"
+              :key="session.id"
+              class="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2.5"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-medium text-primary">
+                    {{ formatSessionTime(session.startedAt) }}
+                  </span>
+                  <span class="text-xs font-semibold text-accent">
+                    {{ formatMinutes(session.durationMinutes ?? 0) }}
+                  </span>
+                  <span
+                    v-if="session.focusRating"
+                    class="text-xs text-secondary"
+                    :aria-label="`Focus rating ${session.focusRating} out of 5`"
+                  >
+                    {{ '★'.repeat(session.focusRating) }}<span class="text-muted">{{ '★'.repeat(5 - session.focusRating) }}</span>
+                  </span>
+                </div>
+                <p v-if="session.description" class="mt-0.5 truncate text-xs text-secondary">
+                  {{ session.description }}
+                </p>
+              </div>
+              <button
+                class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                :aria-label="`Delete session from ${formatSessionTime(session.startedAt)}`"
+                @click="deletingSession = session"
+              >
+                <Trash2 :size="14" />
+              </button>
+            </li>
+          </ul>
         </BaseCard>
       </div>
 
@@ -339,6 +423,14 @@ async function confirmDeleteNote(): Promise<void> {
         :busy="deletingNoteBusy"
         @close="deletingNote = null"
         @confirm="confirmDeleteNote"
+      />
+      <BaseConfirmDialog
+        v-if="deletingSession"
+        title="Delete session?"
+        :message="`Delete the session from ${formatSessionTime(deletingSession.startedAt)}? This cannot be undone.`"
+        :busy="deletingSessionBusy"
+        @close="deletingSession = null"
+        @confirm="confirmDeleteSession"
       />
     </template>
 
