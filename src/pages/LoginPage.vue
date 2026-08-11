@@ -69,6 +69,15 @@ async function submit(): Promise<void> {
         {{ formError }}
       </p>
 
+      <div class="flex items-center justify-between">
+        <RouterLink
+          to="/forgot-password"
+          class="text-sm font-medium text-accent hover:underline"
+        >
+          Forgot password?
+        </RouterLink>
+      </div>
+
       <BaseButton type="submit" :disabled="submitting">
         {{ submitting ? 'Logging in…' : 'Log in' }}
       </BaseButton>

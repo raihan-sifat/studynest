@@ -25,6 +25,7 @@ const password = ref('')
 const confirmPassword = ref('')
 const fieldErrors = ref<{ email?: string; password?: string; confirmPassword?: string }>({})
 const formError = ref('')
+const needsConfirmation = ref(false)
 const submitting = ref(false)
 
 async function submit(): Promise<void> {
@@ -41,8 +42,12 @@ async function submit(): Promise<void> {
   formError.value = ''
   submitting.value = true
   try {
-    await auth.register(email.value, password.value)
-    router.push({ name: 'dashboard' })
+    const signedIn = await auth.register(email.value, password.value)
+    if (signedIn) {
+      router.push({ name: 'dashboard' })
+    } else {
+      needsConfirmation.value = true
+    }
   } catch (error) {
     formError.value = error instanceof Error ? error.message : 'Unable to create account'
   } finally {
@@ -85,6 +90,15 @@ async function submit(): Promise<void> {
       <p v-if="formError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
         {{ formError }}
       </p>
+
+      <div
+        v-if="needsConfirmation"
+        class="rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent"
+        role="status"
+      >
+        Almost there! Check <strong>{{ email }}</strong> and confirm your email address to finish
+        creating your account.
+      </div>
 
       <BaseButton type="submit" :disabled="submitting">
         {{ submitting ? 'Creating account…' : 'Create account' }}
