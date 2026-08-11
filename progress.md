@@ -4,7 +4,7 @@
 > Source of truth: `PLAN.md` (full project plan) + the two PDFs.
 
 **Last updated:** 2026-08-11
-**Overall status:** Milestones 0–5 complete & verified. Next: Milestone 6 (Bilingual Notes).
+**Overall status:** Milestones 0–6 complete & verified. Next: Milestone 7 (Study Sessions timer).
 
 ---
 
@@ -18,7 +18,8 @@
 | 3 | Database | ✅ Done & verified | All 6 tables + FKs + indexes + RLS in `supabase/schema.sql`; RLS isolation tested with two real accounts |
 | 4 | Courses | ✅ Done & verified | Full CRUD + course cards grid + detail page; CRUD live-tested against Supabase |
 | 5 | Tasks | ✅ Done & verified | CRUD, status, priority, search, filters, sorting, course-linked tasks on detail page |
-| 6 | Notes | ⏭️ NEXT | Bilingual EN/CN, tags, search |
+| 6 | Notes | ✅ Done & verified | Bilingual EN/CN notes, tag editor, tag filter, search, course-linked notes on detail page |
+| 7 | Study Sessions | ⏭️ NEXT | Timer, pause/resume, duration math |
 | 4 | Courses | ⬜ Pending | CRUD + detail page |
 | 5 | Tasks | ⬜ Pending | CRUD, status, priority, search/filter/sort |
 | 6 | Notes | ⬜ Pending | Bilingual EN/CN, tags, search |
@@ -84,6 +85,15 @@
 - **Course detail page:** live tasks section — toggle done, new task pre-linked to the course, delete with confirm
 - **Live verification:** task CRUD + course filter + status filter + ilike search + update + delete all tested against the real DB ✅, `/app/tasks` HTTP 200 ✅
 
+### Milestone 6
+- **Notes service** (`src/services/notes.ts`): CRUD; `listNotes` with course filter, GIN tag `contains` filter, ilike search on title/english_content
+- **Notes store** (`src/stores/notes.ts`): cached list, filters (courseId/tag/search), `allTags` derived (sorted, deduped), CRUD
+- **`BaseTextarea`** primitive added
+- **`NoteFormModal`** (`src/components/notes/`): bilingual English/Chinese textareas, tag editor (Enter/comma adds, chip remove, backspace deletes last, auto-lowercase + dash-normalized), course selector
+- **Notes page:** card grid showing English + Chinese content (indented with accent border), tag chips, course color chip, bilingual icon, search + tag/course filters, empty/no-match states, delete confirm
+- **Course detail page:** live notes section (list + tag chips + quick-create tied to the course)
+- **Live verification:** bilingual create, tag `contains` filter, content search, tag update, delete + cleanup ✅, `/app/notes` HTTP 200 ✅
+
 ### Key files
 ```
 PLAN.md                    # project plan (source of truth)
@@ -100,21 +110,21 @@ src/types/index.ts         # domain types
 
 ---
 
-## Next Steps — Milestone 6 (Bilingual Notes)
+## Next Steps — Milestone 7 (Study Sessions)
 
-1. Create `src/services/notes.ts` (CRUD; tags as `text[]`, search via ilike on title + GIN `@>` on tags).
-2. Create a Pinia `notes` store (list, filters, CRUD) + tag input in the form.
-3. Notes page: list of notes (title, course chip, tags), search, tag filter, edit/delete.
-4. Note form modal: title, English content, Chinese content (side-by-side or stacked), tags, course selector.
-5. Wire notes into the course detail page.
-6. Verify: typecheck, lint, build; run manually.
-7. Then Milestone 7 (Study Sessions timer).
+1. `src/services/studySessions.ts` — insert completed sessions (started_at, ended_at, duration_minutes, focus_rating, description, course_id), list with totals.
+2. `src/utils/time.ts` — testable duration formatting/aggregation helpers (per playbook: calculations in testable utilities).
+3. Pinia `studySessions` store — active session state + persisted sessions list.
+4. Study Sessions page: start/pause/resume/finish timer (survives refresh/navigation — store start timestamp, compute elapsed), focus rating after finish, course selector, session notes, daily/weekly/monthly totals.
+5. Wire sessions into the course detail page.
+6. Verify: typecheck, lint, build; run manually (refresh mid-session!).
+7. Then Milestone 8 (Goals).
 
 ---
 
 ## Open Items / Decisions
 
-- [ ] **Milestone 5 not committed yet.** Last commit was `feat(courses)`. Commit when ready (`feat(tasks)`).
+- [ ] **Milestone 6 not committed yet.** Last commit was `feat(tasks)`. Commit when ready (`feat(notes)`).
 - [ ] **Email confirmation is currently OFF** in Supabase (toggled for RLS testing) — re-enable in Authentication → Sign In / Up → Email if you want it on.
 - [ ] Test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com` exist in the project (can delete in Authentication → Users).
 - [ ] The old unconfirmed test user `test-1786457662863@studynest.dev` can be deleted too.
