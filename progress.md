@@ -4,7 +4,7 @@
 > Source of truth: `PLAN.md` (full project plan) + the two PDFs.
 
 **Last updated:** 2026-08-11
-**Overall status:** Milestones 0–1 complete. Next: Milestone 2 (Authentication).
+**Overall status:** Milestones 0–4 complete & verified. Next: Milestone 5 (Tasks).
 
 ---
 
@@ -14,8 +14,10 @@
 |---|---|---|---|
 | 0 | Repository & Specification | ✅ Done | `PLAN.md`, git repo, README, .gitignore, .env.example |
 | 1 | Foundation | ✅ Done | Scaffold, tooling, design tokens, router, stores, layouts, UI primitives, all pages |
-| 2 | Authentication | ⏭️ NEXT | Needs Supabase env vars to test for real |
-| 3 | Database | ⬜ Pending | Six core tables, FKs, indexes, RLS (see PLAN.md §4) |
+| 2 | Authentication | ✅ Done | Login/register/logout/session, password reset, profile mgmt, settings |
+| 3 | Database | ✅ Done & verified | All 6 tables + FKs + indexes + RLS in `supabase/schema.sql`; RLS isolation tested with two real accounts |
+| 4 | Courses | ✅ Done & verified | Full CRUD + course cards grid + detail page; CRUD live-tested against Supabase |
+| 5 | Tasks | ⏭️ NEXT | CRUD, status, priority, search/filter/sort |
 | 4 | Courses | ⬜ Pending | CRUD + detail page |
 | 5 | Tasks | ⬜ Pending | CRUD, status, priority, search/filter/sort |
 | 6 | Notes | ⬜ Pending | Bilingual EN/CN, tags, search |
@@ -28,7 +30,7 @@
 
 ---
 
-## What Was Built (Milestones 0–1)
+## What Was Built (Milestones 0–2)
 
 ### Milestone 0
 - `PLAN.md` — full project plan extracted from the two PDFs (spec + AI playbook)
@@ -46,11 +48,40 @@
 - **Types:** `src/types/index.ts` — Profile, Course, Task, Note, Goal, StudySession + status/priority unions + course colors
 - **Verification:** `npm run typecheck` ✅, `npm run lint` ✅, `npm run build` ✅, dev server smoke test ✅ (HTTP 200, title "StudyNest")
 
+### Milestone 2
+- **Auth store extended** (`src/stores/auth.ts`): `fetchProfile`, `updateProfile`, `requestPasswordReset` (`resetPasswordForEmail`), `updatePassword`; `register` now returns whether a session was created (handles email-confirmation projects); profile loaded on init and refreshed on auth state changes
+- **Profiles service** (`src/services/profiles.ts`): `getProfile` (graceful if table missing until M3), `upsertProfile`
+- **Password reset:** `ForgotPasswordPage` (`/forgot-password`) + `ResetPasswordPage` (`/reset-password`, intentionally NOT guestOnly — Supabase signs the user in via the email link), "Forgot password?" link on login
+- **Register flow:** shows "check your email" confirmation state when email confirmation is enabled
+- **Settings page** (`/app/settings`) fully built: profile form (name, bio, avatar URL) with zod validation + saved states, account section (email display, password reset email), sign out; shows a helpful banner when Supabase isn't configured
+- **Verification:** typecheck ✅, lint ✅, build ✅, smoke test of `/login`, `/forgot-password`, `/reset-password`, `/app` all HTTP 200 ✅
+
+### Milestone 3
+- **Schema:** `supabase/schema.sql` — all 6 tables (`profiles`, `courses`, `tasks`, `notes`, `goals`, `study_sessions`) with exact spec fields, FKs, CHECK constraints, indexes (incl. GIN on `notes.tags`), `updated_at` trigger, RLS policies (select/insert/update/delete on every table)
+- **Key decision:** `user_id` columns default to `auth.uid()` — the DB assigns ownership so clients can't create rows without proper ownership (found via failing insert test)
+- **Auto-profile:** `handle_new_user` trigger creates a `profiles` row on signup (verified)
+- **Live verification** against the real Supabase project (test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com`):
+  - Anon sees 0 rows on all tables ✅
+  - Cross-user SELECT/UPDATE/DELETE all blocked ✅
+  - Test data cleaned up ✅
+- **Note:** email confirmation is currently **DISABLED** in Supabase settings (was toggled off for testing — decide whether to re-enable)
+
+### Milestone 4
+- **Courses service** (`src/services/courses.ts`): list, get, create, update, delete over the `courses` table
+- **Courses store** (`src/stores/courses.ts`): cached list, `byId` map, loading/error state, CRUD actions
+- **UI primitives added:** `BaseModal` (Esc/overlay close, Teleport), `BaseConfirmDialog` (danger confirm), `BaseSelect` (custom chevron)
+- **`CourseFormModal`** (`src/components/courses/`): create/edit form, zod validation, color swatch picker (`COURSE_COLORS`), target date, status select
+- **Courses page:** responsive card grid (color bar, status badge, target date, hover edit/delete), loading skeletons, empty state with CTA, delete confirmation dialog
+- **Course detail page:** header with color/status/target date, edit form, placeholder sections for tasks/notes/goals/sessions
+- **Live verification:** full CRUD (create → update → list → get → delete) tested against the real Supabase DB ✅, routes `/app/courses` + `/app/courses/:id` HTTP 200 ✅
+
 ### Key files
 ```
 PLAN.md                    # project plan (source of truth)
+supabase/schema.sql        # database schema + RLS (run in SQL Editor)
 src/style.css              # design tokens (light + dark)
 src/services/supabase.ts   # supabase client
+src/services/profiles.ts   # profiles table access
 src/stores/auth.ts         # auth store
 src/router/index.ts        # routes + guards
 src/layouts/AppLayout.vue  # app shell
@@ -60,23 +91,24 @@ src/types/index.ts         # domain types
 
 ---
 
-## Next Steps — Milestone 2 (Authentication)
+## Next Steps — Milestone 5 (Tasks)
 
-1. **Requires a Supabase project.** Create one, then copy `.env.example` → `.env` and fill:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-2. Implement password reset flow (`resetPasswordForEmail`).
-3. Profile management: `profiles` table + profile page in Settings (`/app/settings` currently a placeholder).
-4. Test: refresh persistence, logout, invalid credentials, unauthenticated navigation to `/app`.
-5. Then Milestone 3 (Database): create all six tables + RLS with the SQL in the spec.
+1. Create `src/services/tasks.ts` (CRUD over `tasks`, filterable by course/status/search).
+2. Create a Pinia `tasks` store (or fetch-per-page).
+3. Tasks page: list with status/priority/due date, search box, status + course filters, sorting.
+4. Task form modal (title, description, course link, status, priority, due date, estimated minutes).
+5. Update the course detail page tasks section to use real data.
+6. Verify: typecheck, lint, build; run manually.
+7. Then Milestone 6 (Notes).
 
 ---
 
 ## Open Items / Decisions
 
-- [ ] **Nothing committed yet.** The playbook says commit at the end of each milestone — decide whether to commit Milestones 0+1 now (`feat(foundation): scaffold Vue 3 + TS app shell` etc.).
-- [ ] Add Supabase credentials to `.env` before Milestone 2 can be truly tested.
-- [ ] The `profiles` table must be created (Milestone 3) before the Settings profile page can persist.
+- [ ] **Milestones 2–4 not committed yet.** Last commit was `feat(foundation)`. Commit when ready (suggest `feat(auth)`, `feat(database)`, `feat(courses)`).
+- [ ] **Email confirmation is currently OFF** in Supabase (toggled for RLS testing) — re-enable in Authentication → Sign In / Up → Email if you want it on.
+- [ ] Test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com` exist in the project (can delete in Authentication → Users).
+- [ ] The old unconfirmed test user `test-1786457662863@studynest.dev` can be deleted too.
 
 ---
 
