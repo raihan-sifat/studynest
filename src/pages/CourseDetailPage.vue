@@ -5,7 +5,8 @@ import { format, isPast, startOfToday } from 'date-fns'
 import { ArrowLeft, BookOpen, CalendarDays, Check, CheckSquare, ListTodo, Pencil, Plus, StickyNote, Target, Trash2 } from '@lucide/vue'
 import { useCoursesStore } from '@/stores/courses'
 import { useTasksStore } from '@/stores/tasks'
-import type { Course, Task } from '@/types'
+import { useNotesStore } from '@/stores/notes'
+import type { Course, Note, Task } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -13,12 +14,14 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import CourseFormModal from '@/components/courses/CourseFormModal.vue'
 import TaskFormModal from '@/components/tasks/TaskFormModal.vue'
+import NoteFormModal from '@/components/notes/NoteFormModal.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
 const coursesStore = useCoursesStore()
 const tasksStore = useTasksStore()
+const notesStore = useNotesStore()
 
 const courseId = computed(() => String(route.params.id ?? ''))
 const course = ref<Course | null>(null)
@@ -26,8 +29,11 @@ const loading = ref(true)
 const notFound = ref(false)
 const formOpen = ref(false)
 const taskFormOpen = ref(false)
+const noteFormOpen = ref(false)
 const deletingTask = ref<Task | null>(null)
 const deleting = ref(false)
+const deletingNote = ref<Note | null>(null)
+const deletingNoteBusy = ref(false)
 
 const statusLabels: Record<string, string> = {
   active: 'Active',
@@ -37,6 +43,10 @@ const statusLabels: Record<string, string> = {
 
 const courseTasks = computed(() =>
   tasksStore.tasks.filter((task) => task.courseId === courseId.value),
+)
+
+const courseNotes = computed(() =>
+  notesStore.notes.filter((note) => note.courseId === courseId.value),
 )
 
 const overdueIds = computed(() => {
@@ -67,6 +77,7 @@ async function load(): Promise<void> {
     notFound.value = true
   }
   await tasksStore.fetchTasks()
+  await notesStore.fetchNotes()
   loading.value = false
 }
 
@@ -91,6 +102,19 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingTask.value = null
+  }
+}
+
+async function confirmDeleteNote(): Promise<void> {
+  const note = deletingNote.value
+  if (!note) {
+    return
+  }
+  deletingNoteBusy.value = true
+  const ok = await notesStore.removeNote(note.id)
+  deletingNoteBusy.value = false
+  if (ok) {
+    deletingNote.value = null
   }
 }
 </script>
@@ -202,15 +226,64 @@ async function confirmDelete(): Promise<void> {
         </BaseCard>
 
         <BaseCard>
-          <div class="flex items-center gap-2">
-            <StickyNote :size="18" class="text-accent" />
-            <h3 class="font-semibold text-primary">Notes</h3>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <StickyNote :size="18" class="text-accent" />
+              <h3 class="font-semibold text-primary">Notes</h3>
+              <span class="rounded-md bg-background px-1.5 py-0.5 text-xs text-secondary">
+                {{ courseNotes.length }}
+              </span>
+            </div>
+            <BaseButton size="sm" variant="secondary" @click="noteFormOpen = true">
+              <Plus :size="14" />
+              New note
+            </BaseButton>
           </div>
-          <EmptyState
-            :icon="BookOpen"
-            title="No notes yet"
-            description="Bilingual notes for this course will appear here in Milestone 6."
-          />
+
+          <div v-if="notesStore.loading" class="mt-3 space-y-2">
+            <div v-for="i in 2" :key="i" class="h-12 animate-pulse rounded-lg bg-background" />
+          </div>
+
+          <div v-else-if="courseNotes.length === 0" class="mt-2">
+            <EmptyState
+              :icon="BookOpen"
+              title="No notes yet"
+              description="Write bilingual English and Chinese notes for this course."
+            />
+          </div>
+
+          <ul v-else class="mt-3 space-y-2">
+            <li
+              v-for="note in courseNotes"
+              :key="note.id"
+              class="rounded-lg border border-border bg-background px-3 py-2.5"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="min-w-0 flex-1 truncate text-sm font-medium text-primary">
+                  {{ note.title }}
+                </span>
+                <button
+                  class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                  :aria-label="`Delete ${note.title}`"
+                  @click="deletingNote = note"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+              <p v-if="note.englishContent" class="mt-1 line-clamp-2 text-xs text-secondary">
+                {{ note.englishContent }}
+              </p>
+              <div v-if="note.tags.length" class="mt-1.5 flex flex-wrap gap-1">
+                <span
+                  v-for="tag in note.tags"
+                  :key="tag"
+                  class="inline-flex items-center rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+            </li>
+          </ul>
         </BaseCard>
 
         <BaseCard>
@@ -245,6 +318,12 @@ async function confirmDelete(): Promise<void> {
         :default-course-id="course.id"
         @close="taskFormOpen = false"
       />
+      <NoteFormModal
+        :open="noteFormOpen"
+        :note="null"
+        :default-course-id="course.id"
+        @close="noteFormOpen = false"
+      />
       <BaseConfirmDialog
         v-if="deletingTask"
         title="Delete task?"
@@ -252,6 +331,14 @@ async function confirmDelete(): Promise<void> {
         :busy="deleting"
         @close="deletingTask = null"
         @confirm="confirmDelete"
+      />
+      <BaseConfirmDialog
+        v-if="deletingNote"
+        title="Delete note?"
+        :message="`Delete “${deletingNote.title}”? This cannot be undone.`"
+        :busy="deletingNoteBusy"
+        @close="deletingNote = null"
+        @confirm="confirmDeleteNote"
       />
     </template>
 
