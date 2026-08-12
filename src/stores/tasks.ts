@@ -79,6 +79,7 @@ export const useTasksStore = defineStore('tasks', () => {
   }
 
   async function createTask(input: TaskInput): Promise<Task | null> {
+    error.value = ''
     try {
       const task = await createTaskRequest(input)
       tasks.value = [task, ...tasks.value]
@@ -90,6 +91,7 @@ export const useTasksStore = defineStore('tasks', () => {
   }
 
   async function updateTask(id: string, input: TaskInput): Promise<Task | null> {
+    error.value = ''
     try {
       const updated = await updateTaskRequest(id, input)
       tasks.value = tasks.value.map((task) => (task.id === id ? updated : task))
@@ -106,6 +108,7 @@ export const useTasksStore = defineStore('tasks', () => {
       return false
     }
     const next: TaskStatus = task.status === 'done' ? 'todo' : 'done'
+    error.value = ''
     try {
       const updated = await patchTaskStatusRequest(id, next)
       tasks.value = tasks.value.map((item) => (item.id === id ? updated : item))
@@ -117,6 +120,7 @@ export const useTasksStore = defineStore('tasks', () => {
   }
 
   async function removeTask(id: string): Promise<boolean> {
+    error.value = ''
     try {
       await deleteTaskRequest(id)
       tasks.value = tasks.value.filter((task) => task.id !== id)

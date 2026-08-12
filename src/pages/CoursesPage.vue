@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { BookOpen, Pencil, Plus, Trash2 } from '@lucide/vue'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import { format } from 'date-fns'
 import type { Course } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -10,10 +11,12 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import CourseFormModal from '@/components/courses/CourseFormModal.vue'
 
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const formOpen = ref(false)
 const editingCourse = ref<Course | null>(null)
@@ -60,7 +63,12 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingCourse.value = null
+    toast.push('success', 'Course deleted')
   }
+}
+
+function handleSaved(): void {
+  toast.push('success', editingCourse.value ? 'Course updated' : 'Course created')
 }
 
 function formattedDate(date: string | null): string {
@@ -77,9 +85,11 @@ function formattedDate(date: string | null): string {
       </BaseButton>
     </PageHeader>
 
-    <p v-if="coursesStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-      {{ coursesStore.error }}
-    </p>
+    <ErrorBanner
+      v-if="coursesStore.error"
+      :message="coursesStore.error"
+      @dismiss="coursesStore.error = ''"
+    />
 
     <div v-if="coursesStore.loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading courses">
       <div v-for="i in 6" :key="i" class="h-44 animate-pulse rounded-xl border border-border bg-surface" />
@@ -130,16 +140,16 @@ function formattedDate(date: string | null): string {
               Target: {{ formattedDate(course.targetDate) }}
             </span>
             <span v-else />
-            <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <div class="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
               <button
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
                 :aria-label="`Edit ${course.title}`"
                 @click="openEdit(course)"
               >
                 <Pencil :size="16" />
               </button>
               <button
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                 :aria-label="`Delete ${course.title}`"
                 @click="deletingCourse = course"
               >
@@ -151,7 +161,7 @@ function formattedDate(date: string | null): string {
       </BaseCard>
     </div>
 
-    <CourseFormModal :open="formOpen" :course="editingCourse" @close="closeForm" />
+    <CourseFormModal :open="formOpen" :course="editingCourse" @saved="handleSaved" @close="closeForm" />
 
     <BaseConfirmDialog
       v-if="deletingCourse"

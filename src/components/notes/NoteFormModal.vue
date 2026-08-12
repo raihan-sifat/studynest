@@ -170,6 +170,7 @@ async function submit(): Promise<void> {
             type="text"
             class="h-7 min-w-24 flex-1 bg-transparent text-sm text-primary placeholder:text-muted focus:outline-none"
             placeholder="Type a tag and press Enter"
+            aria-label="Add a tag"
             @keydown="onTagKeydown"
           />
         </div>

@@ -8,6 +8,7 @@ import { useTasksStore } from '@/stores/tasks'
 import { useNotesStore } from '@/stores/notes'
 import { useGoalsStore } from '@/stores/goals'
 import { useStudySessionsStore } from '@/stores/studySessions'
+import { useToastStore } from '@/stores/toast'
 import type { Course, Goal, Note, StudySession, Task } from '@/types'
 import { formatMinutes, formatSessionTime, totalMinutes } from '@/utils/time'
 import { goalPhase, goalProgressPercent } from '@/utils/progress'
@@ -16,6 +17,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import CourseFormModal from '@/components/courses/CourseFormModal.vue'
 import TaskFormModal from '@/components/tasks/TaskFormModal.vue'
 import NoteFormModal from '@/components/notes/NoteFormModal.vue'
@@ -29,6 +31,7 @@ const tasksStore = useTasksStore()
 const notesStore = useNotesStore()
 const goalsStore = useGoalsStore()
 const sessionsStore = useStudySessionsStore()
+const toast = useToastStore()
 
 const courseId = computed(() => String(route.params.id ?? ''))
 const course = ref<Course | null>(null)
@@ -126,6 +129,7 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingTask.value = null
+    toast.push('success', 'Task deleted')
   }
 }
 
@@ -139,6 +143,7 @@ async function confirmDeleteNote(): Promise<void> {
   deletingNoteBusy.value = false
   if (ok) {
     deletingNote.value = null
+    toast.push('success', 'Note deleted')
   }
 }
 
@@ -152,6 +157,7 @@ async function confirmDeleteGoal(): Promise<void> {
   deletingGoalBusy.value = false
   if (ok) {
     deletingGoal.value = null
+    toast.push('success', 'Goal deleted')
   }
 }
 
@@ -165,19 +171,50 @@ async function confirmDeleteSession(): Promise<void> {
   deletingSessionBusy.value = false
   if (ok) {
     deletingSession.value = null
+    toast.push('success', 'Session deleted')
   }
+}
+
+function onCourseSaved(): void {
+  toast.push('success', 'Course updated')
+  void load()
+}
+
+function onTaskSaved(): void {
+  toast.push('success', 'Task created')
+}
+
+function onNoteSaved(): void {
+  toast.push('success', 'Note created')
+}
+
+function onGoalSaved(): void {
+  toast.push('success', 'Goal created')
+}
+
+const loadError = computed(
+  () => tasksStore.error || notesStore.error || goalsStore.error || sessionsStore.error,
+)
+
+function clearLoadError(): void {
+  tasksStore.error = ''
+  notesStore.error = ''
+  goalsStore.error = ''
+  sessionsStore.error = ''
 }
 </script>
 
 <template>
   <div>
     <button
-      class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-secondary transition-colors hover:text-primary"
+      class="focus-ring mb-4 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-secondary transition-colors hover:text-primary"
       @click="router.push({ name: 'courses' })"
     >
       <ArrowLeft :size="16" />
       All courses
     </button>
+
+    <ErrorBanner v-if="loadError && course" :message="loadError" @dismiss="clearLoadError" />
 
     <div v-if="loading" class="space-y-4">
       <div class="h-10 w-2/3 animate-pulse rounded-lg bg-surface" />
@@ -240,10 +277,10 @@ async function confirmDeleteSession(): Promise<void> {
               :class="task.status === 'done' ? 'opacity-60' : ''"
             >
               <button
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
+                class="focus-ring flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
                 :class="
                   task.status === 'done'
-                    ? 'border-accent bg-accent text-white'
+                    ? 'border-accent bg-accent text-on-accent'
                     : 'border-muted text-transparent hover:border-accent hover:text-accent'
                 "
                 :aria-label="`Toggle ${task.title}`"
@@ -265,7 +302,7 @@ async function confirmDeleteSession(): Promise<void> {
                 {{ overdueIds.has(task.id) ? 'Overdue · ' : '' }}{{ formattedDate(task.dueDate) }}
               </span>
               <button
-                class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                class="focus-ring shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
                 :aria-label="`Delete ${task.title}`"
                 @click="deletingTask = task"
               >
@@ -313,7 +350,7 @@ async function confirmDeleteSession(): Promise<void> {
                   {{ note.title }}
                 </span>
                 <button
-                  class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                  class="focus-ring shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
                   :aria-label="`Delete ${note.title}`"
                   @click="deletingNote = note"
                 >
@@ -378,7 +415,7 @@ async function confirmDeleteSession(): Promise<void> {
                     {{ progressOf(goal) }}%
                   </span>
                   <button
-                    class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                    class="focus-ring shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
                     :aria-label="`Delete ${goal.title}`"
                     @click="deletingGoal = goal"
                   >
@@ -474,7 +511,7 @@ async function confirmDeleteSession(): Promise<void> {
                 </p>
               </div>
               <button
-                class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                class="focus-ring shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
                 :aria-label="`Delete session from ${formatSessionTime(session.startedAt)}`"
                 @click="deletingSession = session"
               >
@@ -485,23 +522,26 @@ async function confirmDeleteSession(): Promise<void> {
         </BaseCard>
       </div>
 
-      <CourseFormModal :open="formOpen" :course="course" @close="formOpen = false" @saved="load" />
+      <CourseFormModal :open="formOpen" :course="course" @saved="onCourseSaved" @close="formOpen = false" />
       <TaskFormModal
         :open="taskFormOpen"
         :task="null"
         :default-course-id="course.id"
+        @saved="onTaskSaved"
         @close="taskFormOpen = false"
       />
       <NoteFormModal
         :open="noteFormOpen"
         :note="null"
         :default-course-id="course.id"
+        @saved="onNoteSaved"
         @close="noteFormOpen = false"
       />
       <GoalFormModal
         :open="goalFormOpen"
         :goal="null"
         :default-course-id="course.id"
+        @saved="onGoalSaved"
         @close="goalFormOpen = false"
       />
       <BaseConfirmDialog

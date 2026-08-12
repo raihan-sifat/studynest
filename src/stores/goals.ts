@@ -53,6 +53,7 @@ export const useGoalsStore = defineStore('goals', () => {
   }
 
   async function createGoal(input: GoalInput): Promise<Goal | null> {
+    error.value = ''
     try {
       const goal = await createGoalRequest(input)
       goals.value = [goal, ...goals.value]
@@ -64,6 +65,7 @@ export const useGoalsStore = defineStore('goals', () => {
   }
 
   async function updateGoal(id: string, input: GoalInput): Promise<Goal | null> {
+    error.value = ''
     try {
       const updated = await updateGoalRequest(id, input)
       goals.value = goals.value.map((goal) => (goal.id === id ? updated : goal))
@@ -75,6 +77,7 @@ export const useGoalsStore = defineStore('goals', () => {
   }
 
   async function removeGoal(id: string): Promise<boolean> {
+    error.value = ''
     try {
       await deleteGoalRequest(id)
       goals.value = goals.value.filter((goal) => goal.id !== id)

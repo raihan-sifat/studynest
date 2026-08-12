@@ -76,7 +76,7 @@ function goToToday(): void {
       <h3 class="text-lg font-semibold text-primary">{{ formatMonthTitle(monthStart) }}</h3>
       <div class="flex items-center gap-2">
         <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-colors hover:bg-background hover:text-primary"
+          class="focus-ring flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-colors hover:bg-background hover:text-primary"
           aria-label="Previous month"
           @click="prevMonth"
         >
@@ -84,7 +84,7 @@ function goToToday(): void {
         </button>
         <BaseButton size="sm" variant="secondary" @click="goToToday">Today</BaseButton>
         <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-colors hover:bg-background hover:text-primary"
+          class="focus-ring flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-colors hover:bg-background hover:text-primary"
           aria-label="Next month"
           @click="nextMonth"
         >
@@ -108,7 +108,7 @@ function goToToday(): void {
         v-for="day in cells"
         :key="dayKey(day)"
         type="button"
-        class="relative flex min-h-16 flex-col gap-1 rounded-lg border p-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-24"
+        class="focus-ring relative flex min-h-16 flex-col gap-1 rounded-lg border p-1 text-left transition-colors sm:min-h-24"
         :class="[
           dayKey(day) === selectedDay ? 'border-accent bg-accent-soft/50' : 'border-transparent hover:border-border hover:bg-background',
           isCurrentMonth(day, monthStart) ? '' : 'opacity-40',
@@ -119,7 +119,7 @@ function goToToday(): void {
       >
         <span
           class="flex h-6 w-6 items-center justify-center rounded-full text-xs"
-          :class="isCurrentDay(day) ? 'bg-accent font-semibold text-white' : 'text-secondary'"
+          :class="isCurrentDay(day) ? 'bg-accent font-semibold text-on-accent' : 'text-secondary'"
         >
           {{ day.getDate() }}
         </span>

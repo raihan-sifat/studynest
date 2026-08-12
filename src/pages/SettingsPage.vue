@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { useRouter } from 'vue-router'
 import { LogOut } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { isConfigured } from '@/services/supabase'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -13,6 +14,7 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const profileSchema = z.object({
   name: z.string().max(80, 'Name must be under 80 characters'),
@@ -24,9 +26,7 @@ const bio = ref('')
 const avatarUrl = ref('')
 const fieldErrors = ref<{ name?: string; bio?: string; avatarUrl?: string }>({})
 const formError = ref('')
-const saved = ref(false)
 const saving = ref(false)
-const emailSent = ref(false)
 const resetError = ref('')
 
 watchEffect(async () => {
@@ -49,7 +49,6 @@ async function saveProfile(): Promise<void> {
   }
   fieldErrors.value = {}
   formError.value = ''
-  saved.value = false
   saving.value = true
   try {
     await auth.updateProfile({
@@ -57,7 +56,7 @@ async function saveProfile(): Promise<void> {
       bio: bio.value,
       avatarUrl: avatarUrl.value || null,
     })
-    saved.value = true
+    toast.push('success', 'Profile saved')
   } catch (error) {
     formError.value = error instanceof Error ? error.message : 'Unable to save profile'
   } finally {
@@ -71,10 +70,9 @@ async function sendResetEmail(): Promise<void> {
     return
   }
   resetError.value = ''
-  emailSent.value = false
   try {
     await auth.requestPasswordReset(email)
-    emailSent.value = true
+    toast.push('success', `Password reset link sent to ${email}`)
   } catch (error) {
     resetError.value = error instanceof Error ? error.message : 'Unable to send reset email'
   }
@@ -139,9 +137,6 @@ async function handleLogout(): Promise<void> {
         <p v-if="formError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
           {{ formError }}
         </p>
-        <p v-if="saved" class="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent" role="status">
-          Profile saved.
-        </p>
 
         <div class="flex justify-end">
           <BaseButton type="submit" :disabled="saving || auth.loading">
@@ -166,14 +161,11 @@ async function handleLogout(): Promise<void> {
             <p class="text-sm font-medium text-primary">Password</p>
             <p class="text-sm text-secondary">We'll email you a link to set a new password.</p>
           </div>
-          <BaseButton variant="secondary" size="sm" :disabled="emailSent" @click="sendResetEmail">
-            {{ emailSent ? 'Email sent' : 'Send reset link' }}
+          <BaseButton variant="secondary" size="sm" @click="sendResetEmail">
+            Send reset link
           </BaseButton>
         </div>
 
-        <p v-if="emailSent" class="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent" role="status">
-          Password reset link sent to {{ auth.user?.email }}.
-        </p>
         <p v-if="resetError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
           {{ resetError }}
         </p>

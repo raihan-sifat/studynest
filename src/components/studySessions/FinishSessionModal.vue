@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const rating = ref<FocusRating | null>(null)
 const description = ref('')
+const ratingRefs = ref<HTMLElement[]>([])
 
 watch(
   () => props.open,
@@ -37,6 +38,21 @@ const ratings: { value: FocusRating; label: string }[] = [
   { value: 5, label: 'Deep focus' },
 ]
 
+function onRatingKeydown(event: KeyboardEvent, index: number): void {
+  const dir =
+    event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? -1
+        : 0
+  if (dir === 0) {
+    return
+  }
+  event.preventDefault()
+  const next = (index + dir + ratings.length) % ratings.length
+  ratingRefs.value[next]?.focus()
+}
+
 function submit(): void {
   if (rating.value === null) {
     return
@@ -52,14 +68,17 @@ function submit(): void {
 
       <div class="mt-3 flex justify-center gap-1" role="radiogroup" aria-label="Focus rating">
         <button
-          v-for="option in ratings"
+          v-for="(option, index) in ratings"
           :key="option.value"
           type="button"
-          class="flex flex-col items-center gap-1 rounded-lg p-2 transition-colors hover:bg-background"
+          ref="ratingRefs"
+          class="focus-ring flex flex-col items-center gap-1 rounded-lg p-2 transition-colors hover:bg-background"
           :aria-label="`${option.value} out of 5: ${option.label}`"
           :aria-checked="rating === option.value"
+          :tabindex="rating === option.value ? 0 : -1"
           role="radio"
           @click="rating = option.value"
+          @keydown="onRatingKeydown($event, index)"
         >
           <Star
             :size="26"

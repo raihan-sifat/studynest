@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
 import { BookOpen, CheckSquare, LineChart, StickyNote, Timer } from '@lucide/vue'
 
 const features = [
@@ -35,17 +36,23 @@ const features = [
     <header class="border-b border-border bg-surface">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <div class="flex items-center gap-2 text-lg font-bold text-primary">
-          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
+          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent">
             S
           </span>
           StudyNest
         </div>
         <nav class="flex items-center gap-2">
-          <RouterLink to="/login">
-            <BaseButton variant="ghost">Log in</BaseButton>
+          <RouterLink
+            to="/login"
+            class="focus-ring inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-secondary transition-colors hover:bg-background hover:text-primary"
+          >
+            Log in
           </RouterLink>
-          <RouterLink to="/register">
-            <BaseButton>Get started</BaseButton>
+          <RouterLink
+            to="/register"
+            class="focus-ring inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-on-accent transition-colors hover:bg-accent/90"
+          >
+            Get started
           </RouterLink>
         </nav>
       </div>
@@ -63,11 +70,17 @@ const features = [
           sessions, bilingual notes, learning goals, and progress analytics.
         </p>
         <div class="mt-10 flex items-center justify-center gap-3">
-          <RouterLink to="/register">
-            <BaseButton size="lg">Start studying free</BaseButton>
+          <RouterLink
+            to="/register"
+            class="focus-ring inline-flex h-12 items-center justify-center rounded-lg bg-accent px-6 text-base font-medium text-on-accent transition-colors hover:bg-accent/90"
+          >
+            Start studying free
           </RouterLink>
-          <RouterLink to="/login">
-            <BaseButton variant="secondary" size="lg">Log in</BaseButton>
+          <RouterLink
+            to="/login"
+            class="focus-ring inline-flex h-12 items-center justify-center rounded-lg border border-border bg-surface px-6 text-base font-medium text-primary transition-colors hover:bg-background"
+          >
+            Log in
           </RouterLink>
         </div>
       </section>

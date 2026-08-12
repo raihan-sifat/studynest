@@ -7,6 +7,7 @@ import { useStudySessionsStore } from '@/stores/studySessions'
 import { useTasksStore } from '@/stores/tasks'
 import { useGoalsStore } from '@/stores/goals'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import { formatMinutes, formatSessionTime, minutesPerMonth, percentChange, totalMinutesBetween } from '@/utils/time'
 import { goalProgressPercent } from '@/utils/progress'
 import { courseStatusCounts, taskCompletionStats } from '@/utils/stats'
@@ -15,6 +16,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import GaugeChart from '@/components/charts/GaugeChart.vue'
 
@@ -25,6 +27,7 @@ const sessionsStore = useStudySessionsStore()
 const tasksStore = useTasksStore()
 const goalsStore = useGoalsStore()
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const loaded = ref(false)
 const period = ref<PeriodKey>('week')
@@ -132,6 +135,18 @@ function exportCsv(): void {
     ]),
   ]
   downloadCsv('studynest-sessions.csv', toCsv(rows))
+  toast.push('success', 'CSV exported')
+}
+
+const loadError = computed(
+  () => sessionsStore.error || tasksStore.error || goalsStore.error || coursesStore.error,
+)
+
+function clearLoadError(): void {
+  sessionsStore.error = ''
+  tasksStore.error = ''
+  goalsStore.error = ''
+  coursesStore.error = ''
 }
 
 onMounted(async () => {
@@ -170,6 +185,8 @@ onMounted(async () => {
       </div>
     </div>
 
+    <ErrorBanner v-if="loadError" :message="loadError" @dismiss="clearLoadError" />
+
     <div v-if="!loaded" class="space-y-6" aria-label="Loading dashboard">
       <div class="grid gap-5 md:grid-cols-3">
         <div v-for="i in 3" :key="i" class="h-40 animate-pulse rounded-[20px] border border-border bg-surface" />
@@ -182,17 +199,17 @@ onMounted(async () => {
 
     <template v-else>
       <div class="grid gap-5 md:grid-cols-3">
-        <BaseCard class="relative overflow-hidden rounded-[20px] border-accent bg-accent text-white">
+        <BaseCard class="relative overflow-hidden rounded-[20px] border-accent bg-accent text-on-accent">
           <div
-            class="pointer-events-none absolute inset-0 opacity-20"
+            class="pointer-events-none absolute inset-0 opacity-10"
             aria-hidden="true"
-            style="background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0 1px, transparent 1px 12px), radial-gradient(circle at 82% 18%, rgba(255,255,255,0.5) 0 2px, transparent 2px 16px)"
+            style="background-image: repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 12px), radial-gradient(circle at 82% 18%, currentColor 0 2px, transparent 2px 16px)"
           />
           <div class="relative">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-white/85">Study time</span>
+              <span class="text-sm font-medium text-on-accent/85">Study time</span>
               <button
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-on-accent/15 text-on-accent transition-colors hover:bg-on-accent/25"
                 :aria-label="`View study sessions (${formatMinutes(studyMinutes)} this period)`"
                 @click="router.push({ name: 'sessions' })"
               >
@@ -203,14 +220,14 @@ onMounted(async () => {
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <span
                 v-if="studyTrend !== null"
-                class="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold"
+                class="inline-flex items-center gap-1 rounded-full bg-on-accent/20 px-2.5 py-1 text-xs font-semibold"
               >
                 <TrendingUp v-if="studyTrend >= 0" :size="13" />
                 <TrendingDown v-else :size="13" />
                 {{ Math.abs(studyTrend) }}%
-                <span class="font-normal text-white/75">vs {{ previousPeriodLabels[period] }}</span>
+                <span class="font-normal text-on-accent/75">vs {{ previousPeriodLabels[period] }}</span>
               </span>
-              <span v-else class="rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold">No data yet</span>
+              <span v-else class="rounded-full bg-on-accent/20 px-2.5 py-1 text-xs font-semibold">No data yet</span>
             </div>
           </div>
         </BaseCard>
@@ -219,7 +236,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-secondary">Tasks completed</span>
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
               :aria-label="`View tasks (${doneTasks} of ${totalTasks} done)`"
               @click="router.push({ name: 'tasks' })"
             >
@@ -239,7 +256,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium text-secondary">Courses</span>
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
               :aria-label="`View courses (${totalCourses} total)`"
               @click="router.push({ name: 'courses' })"
             >
@@ -249,7 +266,7 @@ onMounted(async () => {
           <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ totalCourses }}</p>
           <div class="mt-3 flex h-2.5 overflow-hidden rounded-full bg-background" role="img" aria-label="Course status breakdown">
             <div class="bg-accent" :style="{ width: `${segmentPercent(courseCounts.active)}%` }" />
-            <div class="bg-primary" :style="{ width: `${segmentPercent(courseCounts.completed)}%` }" />
+            <div class="bg-brand" :style="{ width: `${segmentPercent(courseCounts.completed)}%` }" />
             <div class="bg-muted" :style="{ width: `${segmentPercent(courseCounts.archived)}%` }" />
           </div>
           <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-secondary">
@@ -257,7 +274,7 @@ onMounted(async () => {
               <span class="h-2 w-2 rounded-full bg-accent" />Active ({{ courseCounts.active }})
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <span class="h-2 w-2 rounded-full bg-primary" />Completed ({{ courseCounts.completed }})
+              <span class="h-2 w-2 rounded-full bg-brand" />Completed ({{ courseCounts.completed }})
             </span>
             <span class="inline-flex items-center gap-1.5">
               <span class="h-2 w-2 rounded-full bg-muted" />Archived ({{ courseCounts.archived }})

@@ -36,6 +36,7 @@ const status = ref<'active' | 'completed' | 'archived'>('active')
 const fieldErrors = ref<Record<string, string>>({})
 const formError = ref('')
 const saving = ref(false)
+const colorRefs = ref<HTMLElement[]>([])
 
 const statusOptions = [
   { value: 'active', label: 'Active' },
@@ -57,6 +58,21 @@ watch(
     }
   },
 )
+
+function onColorKeydown(event: KeyboardEvent, index: number): void {
+  const dir =
+    event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? -1
+        : 0
+  if (dir === 0) {
+    return
+  }
+  event.preventDefault()
+  const next = (index + dir + COURSE_COLORS.length) % COURSE_COLORS.length
+  colorRefs.value[next]?.focus()
+}
 
 async function submit(): Promise<void> {
   const result = courseSchema.safeParse({
@@ -126,16 +142,19 @@ async function submit(): Promise<void> {
         <span class="text-sm font-medium text-primary">Color</span>
         <div class="flex items-center gap-2" role="radiogroup" aria-label="Course color">
           <button
-            v-for="option in COURSE_COLORS"
+            v-for="(option, index) in COURSE_COLORS"
             :key="option"
             type="button"
-            class="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+            ref="colorRefs"
+            class="focus-ring h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
             :class="color === option ? 'border-primary' : 'border-transparent'"
             :style="{ backgroundColor: option }"
             :aria-label="`Use color ${option}`"
             :aria-checked="color === option"
+            :tabindex="color === option ? 0 : -1"
             role="radio"
             @click="color = option"
+            @keydown="onColorKeydown($event, index)"
           />
         </div>
       </div>

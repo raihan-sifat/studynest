@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { Flag, Pencil, Plus, Search, Target, Trash2 } from '@lucide/vue'
 import { useGoalsStore } from '@/stores/goals'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import type { Goal } from '@/types'
 import { daysUntilDeadline, goalPhase, goalProgressPercent } from '@/utils/progress'
 import type { GoalPhase } from '@/utils/progress'
@@ -14,11 +15,13 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import GoalFormModal from '@/components/goals/GoalFormModal.vue'
 
 const goalsStore = useGoalsStore()
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const formOpen = ref(false)
 const editingGoal = ref<Goal | null>(null)
@@ -104,7 +107,12 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingGoal.value = null
+    toast.push('success', 'Goal deleted')
   }
+}
+
+function handleSaved(): void {
+  toast.push('success', editingGoal.value ? 'Goal updated' : 'Goal created')
 }
 
 function clearFilters(): void {
@@ -121,9 +129,11 @@ function clearFilters(): void {
       </BaseButton>
     </PageHeader>
 
-    <p v-if="goalsStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-      {{ goalsStore.error }}
-    </p>
+    <ErrorBanner
+      v-if="goalsStore.error"
+      :message="goalsStore.error"
+      @dismiss="goalsStore.error = ''"
+    />
 
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-card sm:flex-row sm:items-end">
       <div class="flex-1">
@@ -169,16 +179,16 @@ function clearFilters(): void {
       <BaseCard v-for="goal in goalsStore.filteredGoals" :key="goal.id" as="article" class="group flex flex-col">
         <div class="flex items-start justify-between gap-2">
           <h3 class="font-semibold text-primary">{{ goal.title }}</h3>
-          <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div class="flex shrink-0 gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
               :aria-label="`Edit ${goal.title}`"
               @click="openEdit(goal)"
             >
               <Pencil :size="16" />
             </button>
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
               :aria-label="`Delete ${goal.title}`"
               @click="deletingGoal = goal"
             >
@@ -236,7 +246,7 @@ function clearFilters(): void {
       </BaseCard>
     </div>
 
-    <GoalFormModal :open="formOpen" :goal="editingGoal" @close="closeForm" />
+    <GoalFormModal :open="formOpen" :goal="editingGoal" @saved="handleSaved" @close="closeForm" />
 
     <BaseConfirmDialog
       v-if="deletingGoal"

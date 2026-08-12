@@ -4,6 +4,7 @@ import { BellRing, Flag, Hourglass, Pause, Play, RotateCcw, Timer, Trash2 } from
 import type { StudySession } from '@/types'
 import { useStudySessionsStore, type SessionMode } from '@/stores/studySessions'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import { formatCountdown, formatElapsed, formatMinutes, formatSessionTime } from '@/utils/time'
 import { initAudio, playChime } from '@/utils/sound'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -12,6 +13,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import FinishSessionModal from '@/components/studySessions/FinishSessionModal.vue'
 
@@ -20,6 +22,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 const sessionsStore = useStudySessionsStore()
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const courseFilter = ref('all')
 const now = ref(Date.now())
@@ -242,6 +245,7 @@ async function finish(rating: number, description: string): Promise<void> {
   if (ok) {
     finishOpen.value = false
     expiryHandled.value = false
+    toast.push('success', 'Session saved')
   }
 }
 
@@ -255,7 +259,15 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingSession.value = null
+    toast.push('success', 'Session deleted')
   }
+}
+
+function confirmDiscard(): void {
+  sessionsStore.discardSession()
+  discardOpen.value = false
+  expiryHandled.value = false
+  toast.push('info', 'Session discarded')
 }
 </script>
 
@@ -263,27 +275,28 @@ async function confirmDelete(): Promise<void> {
   <div>
     <PageHeader title="Study Sessions" description="Track focused study time with the stopwatch or a countdown timer." />
 
-    <p v-if="sessionsStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-      {{ sessionsStore.error }}
-    </p>
+    <ErrorBanner
+      v-if="sessionsStore.error"
+      :message="sessionsStore.error"
+      @dismiss="sessionsStore.error = ''"
+    />
 
     <BaseCard padding="lg" class="text-center">
       <div
         v-if="!sessionsStore.active"
         class="inline-flex items-center gap-1 rounded-xl border border-border bg-background p-1"
-        role="tablist"
+        role="group"
         aria-label="Session mode"
       >
         <button
           v-for="option in modeOptions"
           :key="option.value"
           type="button"
-          role="tab"
-          :aria-selected="mode === option.value"
-          class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          :aria-pressed="mode === option.value"
+          class="focus-ring inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
           :class="
             mode === option.value
-              ? 'bg-accent text-white shadow-card'
+              ? 'bg-accent text-on-accent shadow-card'
               : 'text-secondary hover:text-primary'
           "
           @click="mode = option.value"
@@ -370,7 +383,7 @@ async function confirmDelete(): Promise<void> {
               <Flag :size="16" />
               {{ activeMode === 'timer' ? 'Finish early' : 'Finish' }}
             </BaseButton>
-            <BaseButton variant="ghost" class="text-danger hover:!bg-danger/10" @click="discardOpen = true">
+            <BaseButton variant="ghost-danger" @click="discardOpen = true">
               Discard
             </BaseButton>
           </template>
@@ -384,10 +397,10 @@ async function confirmDelete(): Promise<void> {
               v-for="preset in timerPresets"
               :key="preset"
               type="button"
-              class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
+              class="focus-ring rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
               :class="
                 timerMinutes === preset
-                  ? 'border-accent bg-accent text-white'
+                  ? 'border-accent bg-accent text-on-accent'
                   : 'border-border text-secondary hover:border-accent hover:text-accent'
               "
               @click="selectPreset(preset)"
@@ -403,7 +416,7 @@ async function confirmDelete(): Promise<void> {
             class="mt-4 w-36"
             @update:model-value="onCustomMinutes"
           />
-          <p class="mt-5 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary" role="timer">
+          <p class="mt-5 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary">
             {{ timerMs !== null ? formatCountdown(timerMs) : '--:--' }}
           </p>
           <p class="mt-2 text-xs text-muted">A chime will play when the time is up.</p>
@@ -411,7 +424,7 @@ async function confirmDelete(): Promise<void> {
 
         <template v-else>
           <Timer :size="36" class="text-muted" />
-          <p class="mt-4 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary" role="timer">
+          <p class="mt-4 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary">
             00:00:00
           </p>
           <h3 class="mt-3 text-lg font-semibold text-primary">Ready to focus?</h3>
@@ -474,7 +487,7 @@ async function confirmDelete(): Promise<void> {
         >
           <span
             class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-            :style="{ backgroundColor: courseColor(session.courseId) || '#8B8B96' }"
+            :style="{ backgroundColor: courseColor(session.courseId) || 'var(--color-muted)' }"
           />
 
           <div class="min-w-0 flex-1">
@@ -496,7 +509,7 @@ async function confirmDelete(): Promise<void> {
           </div>
 
           <button
-            class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+            class="focus-ring shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
             :aria-label="`Delete session from ${formatSessionTime(session.startedAt)}`"
             @click="deletingSession = session"
           >
@@ -518,7 +531,7 @@ async function confirmDelete(): Promise<void> {
       title="Discard session?"
       message="This session will be discarded and not saved. Start over whenever you're ready."
       @close="discardOpen = false"
-      @confirm="sessionsStore.discardSession(); discardOpen = false; expiryHandled = false"
+      @confirm="confirmDiscard"
     />
 
     <BaseConfirmDialog

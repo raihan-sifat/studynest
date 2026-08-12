@@ -79,10 +79,10 @@ export interface StudySession {
 }
 
 export const COURSE_COLORS = [
-  '#16A36A',
-  '#3572EF',
-  '#B05CE6',
-  '#E07B39',
-  '#E45D5D',
+  '#047857',
+  '#4F46E5',
+  '#7C3AED',
+  '#D97706',
+  '#DC2626',
   '#0EA5E9',
 ] as const

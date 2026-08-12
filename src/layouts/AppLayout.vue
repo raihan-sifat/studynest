@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   BarChart3,
@@ -18,6 +18,7 @@ import {
 } from '@lucide/vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,6 +45,15 @@ const currentTitle = computed(() => {
 
 const isActive = (name: unknown) => route.name === name
 
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && mobileNavOpen.value) {
+    mobileNavOpen.value = false
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+
 async function handleLogout(): Promise<void> {
   await auth.logout()
   router.push({ name: 'login' })
@@ -52,6 +62,13 @@ async function handleLogout(): Promise<void> {
 
 <template>
   <div class="min-h-screen bg-background">
+    <a
+      href="#main-content"
+      class="focus-ring sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-card"
+    >
+      Skip to content
+    </a>
+
     <aside
       class="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-surface lg:flex"
     >
@@ -59,23 +76,24 @@ async function handleLogout(): Promise<void> {
         to="/app"
         class="flex h-16 items-center gap-2 border-b border-border px-5 text-lg font-bold text-primary"
       >
-        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
+        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent">
           S
         </span>
         StudyNest
       </RouterLink>
 
-      <nav class="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main">
         <RouterLink
           v-for="item in navItems"
           :key="String(item.to.name)"
           :to="item.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
           :class="
             isActive(item.to.name)
-              ? 'bg-accent-soft text-accent'
+              ? 'bg-brand-soft text-brand'
               : 'text-secondary hover:bg-background hover:text-primary'
           "
+          :aria-current="isActive(item.to.name) ? 'page' : undefined"
         >
           <component :is="item.icon" :size="18" />
           {{ item.label }}
@@ -83,12 +101,13 @@ async function handleLogout(): Promise<void> {
 
         <RouterLink
           to="/app/settings"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
           :class="
             isActive('settings')
-              ? 'bg-accent-soft text-accent'
+              ? 'bg-brand-soft text-brand'
               : 'text-secondary hover:bg-background hover:text-primary'
           "
+          :aria-current="isActive('settings') ? 'page' : undefined"
         >
           <Settings :size="18" />
           Settings
@@ -97,7 +116,7 @@ async function handleLogout(): Promise<void> {
 
       <div class="border-t border-border p-3">
         <button
-          class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-background hover:text-primary"
+          class="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-background hover:text-primary"
           @click="handleLogout"
         >
           <LogOut :size="18" />
@@ -114,8 +133,9 @@ async function handleLogout(): Promise<void> {
 
         <div class="flex items-center gap-2">
           <button
-            class="flex h-9 w-9 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-surface hover:text-primary"
+            class="focus-ring flex h-9 w-9 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-surface hover:text-primary"
             :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+            :aria-pressed="theme.isDark"
             @click="theme.toggle"
           >
             <Sun v-if="theme.isDark" :size="18" />
@@ -123,14 +143,14 @@ async function handleLogout(): Promise<void> {
           </button>
 
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white"
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
           >
             {{ auth.user?.email?.charAt(0).toUpperCase() ?? '?' }}
           </div>
         </div>
       </header>
 
-      <main class="mx-auto max-w-6xl px-4 py-6 lg:px-8">
+      <main id="main-content" class="mx-auto max-w-6xl px-4 py-6 lg:px-8">
         <RouterView />
       </main>
     </div>
@@ -143,15 +163,18 @@ async function handleLogout(): Promise<void> {
         v-for="item in navItems.slice(0, 5)"
         :key="String(item.to.name)"
         :to="item.to"
-        class="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium"
-        :class="isActive(item.to.name) ? 'text-accent' : 'text-muted'"
+        class="focus-ring flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium"
+        :class="isActive(item.to.name) ? 'text-brand' : 'text-muted'"
+        :aria-current="isActive(item.to.name) ? 'page' : undefined"
       >
         <component :is="item.icon" :size="20" />
         {{ item.label }}
       </RouterLink>
       <button
-        class="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium text-muted"
+        class="focus-ring flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium text-muted"
         aria-label="Open menu"
+        aria-haspopup="dialog"
+        :aria-expanded="mobileNavOpen"
         @click="mobileNavOpen = !mobileNavOpen"
       >
         <MenuIcon :size="20" />
@@ -167,13 +190,15 @@ async function handleLogout(): Promise<void> {
       aria-label="Mobile navigation"
       @click="mobileNavOpen = false"
     >
-      <div class="absolute inset-0 bg-black/40" />
-      <div class="absolute bottom-14 left-0 right-0 mx-4 rounded-xl border border-border bg-surface p-2 shadow-card">
+      <div class="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div
+        class="absolute bottom-14 left-0 right-0 mx-4 max-h-[70vh] overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-card"
+      >
         <RouterLink
           v-for="item in navItems.slice(5)"
           :key="String(item.to.name)"
           :to="item.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
+          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
           @click="mobileNavOpen = false"
         >
           <component :is="item.icon" :size="18" />
@@ -181,14 +206,14 @@ async function handleLogout(): Promise<void> {
         </RouterLink>
         <RouterLink
           to="/app/settings"
-          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
+          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
           @click="mobileNavOpen = false"
         >
           <Settings :size="18" />
           Settings
         </RouterLink>
         <button
-          class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
+          class="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary hover:bg-background hover:text-primary"
           @click="handleLogout"
         >
           <LogOut :size="18" />
@@ -196,5 +221,7 @@ async function handleLogout(): Promise<void> {
         </button>
       </div>
     </div>
+
+    <ToastContainer />
   </div>
 </template>

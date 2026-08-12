@@ -63,6 +63,7 @@ export const useNotesStore = defineStore('notes', () => {
   }
 
   async function createNote(input: NoteInput): Promise<Note | null> {
+    error.value = ''
     try {
       const note = await createNoteRequest(input)
       notes.value = [note, ...notes.value]
@@ -74,6 +75,7 @@ export const useNotesStore = defineStore('notes', () => {
   }
 
   async function updateNote(id: string, input: NoteInput): Promise<Note | null> {
+    error.value = ''
     try {
       const updated = await updateNoteRequest(id, input)
       notes.value = notes.value.map((note) => (note.id === id ? updated : note))
@@ -85,6 +87,7 @@ export const useNotesStore = defineStore('notes', () => {
   }
 
   async function removeNote(id: string): Promise<boolean> {
+    error.value = ''
     try {
       await deleteNoteRequest(id)
       notes.value = notes.value.filter((note) => note.id !== id)

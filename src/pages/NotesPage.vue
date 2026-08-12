@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { Languages, Pencil, Plus, Search, StickyNote, Trash2 } from '@lucide/vue'
 import { useNotesStore } from '@/stores/notes'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import type { Note } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -11,11 +12,13 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import NoteFormModal from '@/components/notes/NoteFormModal.vue'
 
 const notesStore = useNotesStore()
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const formOpen = ref(false)
 const editingNote = ref<Note | null>(null)
@@ -69,7 +72,12 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingNote.value = null
+    toast.push('success', 'Note deleted')
   }
+}
+
+function handleSaved(): void {
+  toast.push('success', editingNote.value ? 'Note updated' : 'Note created')
 }
 
 function formattedDate(date: string): string {
@@ -90,9 +98,11 @@ function clearFilters(): void {
       </BaseButton>
     </PageHeader>
 
-    <p v-if="notesStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-      {{ notesStore.error }}
-    </p>
+    <ErrorBanner
+      v-if="notesStore.error"
+      :message="notesStore.error"
+      @dismiss="notesStore.error = ''"
+    />
 
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-card sm:flex-row sm:items-end">
       <div class="flex-1">
@@ -147,16 +157,16 @@ function clearFilters(): void {
       >
         <div class="flex items-start justify-between gap-2">
           <h3 class="font-semibold text-primary">{{ note.title }}</h3>
-          <div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div class="flex shrink-0 gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
               :aria-label="`Edit ${note.title}`"
               @click="openEdit(note)"
             >
               <Pencil :size="16" />
             </button>
             <button
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+              class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
               :aria-label="`Delete ${note.title}`"
               @click="deletingNote = note"
             >
@@ -198,7 +208,7 @@ function clearFilters(): void {
       </BaseCard>
     </div>
 
-    <NoteFormModal :open="formOpen" :note="editingNote" @close="closeForm" />
+    <NoteFormModal :open="formOpen" :note="editingNote" @saved="handleSaved" @close="closeForm" />
 
     <BaseConfirmDialog
       v-if="deletingNote"

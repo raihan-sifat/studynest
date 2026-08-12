@@ -4,6 +4,7 @@ import { format, isPast, startOfToday } from 'date-fns'
 import { Check, ListTodo, Pencil, Plus, Search, Trash2 } from '@lucide/vue'
 import { useTasksStore } from '@/stores/tasks'
 import { useCoursesStore } from '@/stores/courses'
+import { useToastStore } from '@/stores/toast'
 import type { Task, TaskPriority } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -11,11 +12,13 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import TaskFormModal from '@/components/tasks/TaskFormModal.vue'
 
 const tasksStore = useTasksStore()
 const coursesStore = useCoursesStore()
+const toast = useToastStore()
 
 const formOpen = ref(false)
 const editingTask = ref<Task | null>(null)
@@ -111,7 +114,12 @@ async function confirmDelete(): Promise<void> {
   deleting.value = false
   if (ok) {
     deletingTask.value = null
+    toast.push('success', 'Task deleted')
   }
+}
+
+function handleSaved(): void {
+  toast.push('success', editingTask.value ? 'Task updated' : 'Task created')
 }
 
 function formattedDate(date: string | null): string {
@@ -132,9 +140,11 @@ function clearFilters(): void {
       </BaseButton>
     </PageHeader>
 
-    <p v-if="tasksStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-      {{ tasksStore.error }}
-    </p>
+    <ErrorBanner
+      v-if="tasksStore.error"
+      :message="tasksStore.error"
+      @dismiss="tasksStore.error = ''"
+    />
 
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-card sm:flex-row sm:items-end">
       <div class="flex-1">
@@ -189,10 +199,10 @@ function clearFilters(): void {
         :class="task.status === 'done' ? 'opacity-60' : ''"
       >
         <button
-          class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
+          class="focus-ring mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
           :class="
             task.status === 'done'
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-muted text-transparent hover:border-accent hover:text-accent'
           "
           :aria-label="task.status === 'done' ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`"
@@ -233,14 +243,14 @@ function clearFilters(): void {
 
         <div class="flex shrink-0 gap-1">
           <button
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
+            class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-primary"
             :aria-label="`Edit ${task.title}`"
             @click="openEdit(task)"
           >
             <Pencil :size="16" />
           </button>
           <button
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+            class="focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
             :aria-label="`Delete ${task.title}`"
             @click="deletingTask = task"
           >
@@ -250,7 +260,7 @@ function clearFilters(): void {
       </li>
     </ul>
 
-    <TaskFormModal :open="formOpen" :task="editingTask" @close="closeForm" />
+    <TaskFormModal :open="formOpen" :task="editingTask" @saved="handleSaved" @close="closeForm" />
 
     <BaseConfirmDialog
       v-if="deletingTask"

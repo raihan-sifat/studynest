@@ -9,7 +9,7 @@ import { RouterView } from 'vue-router'
       class="mb-8 flex items-center gap-2 text-xl font-bold text-primary"
       aria-label="StudyNest home"
     >
-      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent">
         S
       </span>
       StudyNest

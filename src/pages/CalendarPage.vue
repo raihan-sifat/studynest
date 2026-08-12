@@ -14,6 +14,7 @@ import type { Task } from '@/types'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import MonthGrid from '@/components/calendar/MonthGrid.vue'
 
 const router = useRouter()
@@ -65,6 +66,17 @@ function isOverdue(task: Task): boolean {
   return isPast(due) && due < startOfToday()
 }
 
+const loadError = computed(
+  () => tasksStore.error || sessionsStore.error || goalsStore.error || coursesStore.error,
+)
+
+function clearLoadError(): void {
+  tasksStore.error = ''
+  sessionsStore.error = ''
+  goalsStore.error = ''
+  coursesStore.error = ''
+}
+
 async function toggleTask(task: Task): Promise<void> {
   await tasksStore.toggleStatus(task.id)
 }
@@ -92,6 +104,8 @@ onMounted(async () => {
         New task
       </BaseButton>
     </div>
+
+    <ErrorBanner v-if="loadError" :message="loadError" @dismiss="clearLoadError" />
 
     <div v-if="!loaded" class="grid gap-5 lg:grid-cols-[1fr_320px]" aria-label="Loading calendar">
       <div class="h-96 animate-pulse rounded-[20px] border border-border bg-surface" />
@@ -144,7 +158,7 @@ onMounted(async () => {
               <span class="text-xs font-semibold uppercase tracking-wide text-muted">Tasks due</span>
               <RouterLink
                 to="/app/tasks"
-                class="text-xs font-medium text-accent transition-colors hover:text-primary"
+                class="focus-ring rounded-md text-xs font-medium text-accent transition-colors hover:text-primary"
               >
                 View all
               </RouterLink>
@@ -157,10 +171,10 @@ onMounted(async () => {
                 :class="task.status === 'done' ? 'opacity-60' : ''"
               >
                 <button
-                  class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
+                  class="focus-ring flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
                   :class="
                     task.status === 'done'
-                      ? 'border-accent bg-accent text-white'
+                      ? 'border-accent bg-accent text-on-accent'
                       : 'border-muted text-transparent hover:border-accent hover:text-accent'
                   "
                   :aria-label="`Toggle ${task.title}`"
@@ -194,7 +208,7 @@ onMounted(async () => {
               <span class="text-xs font-semibold uppercase tracking-wide text-muted">Study sessions</span>
               <RouterLink
                 to="/app/sessions"
-                class="text-xs font-medium text-accent transition-colors hover:text-primary"
+                class="focus-ring rounded-md text-xs font-medium text-accent transition-colors hover:text-primary"
               >
                 View all
               </RouterLink>
@@ -228,7 +242,7 @@ onMounted(async () => {
               <span class="text-xs font-semibold uppercase tracking-wide text-muted">Goal deadlines</span>
               <RouterLink
                 to="/app/goals"
-                class="text-xs font-medium text-accent transition-colors hover:text-primary"
+                class="focus-ring rounded-md text-xs font-medium text-accent transition-colors hover:text-primary"
               >
                 View all
               </RouterLink>

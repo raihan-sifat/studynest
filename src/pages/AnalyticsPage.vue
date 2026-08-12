@@ -14,6 +14,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorBanner from '@/components/ui/ErrorBanner.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 
@@ -62,11 +63,22 @@ const courseDonutValues = computed(() => [
   courseCounts.value.completed,
   courseCounts.value.archived,
 ])
-const courseDonutColors = ['--color-accent', '--color-primary', '--color-muted']
+const courseDonutColors = ['--color-accent', '--color-brand', '--color-muted']
 
 const hasCourses = computed(() => coursesStore.courses.length > 0)
 const hasGoals = computed(() => measurableGoals.value.length > 0)
 const hasSessions = computed(() => sessionsStore.sessions.length > 0)
+
+const loadError = computed(
+  () => sessionsStore.error || tasksStore.error || goalsStore.error || coursesStore.error,
+)
+
+function clearLoadError(): void {
+  sessionsStore.error = ''
+  tasksStore.error = ''
+  goalsStore.error = ''
+  coursesStore.error = ''
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -87,6 +99,8 @@ onMounted(async () => {
         <p class="mt-1 text-sm text-secondary">Study time, tasks, courses, and goal insights.</p>
       </div>
     </div>
+
+    <ErrorBanner v-if="loadError" :message="loadError" @dismiss="clearLoadError" />
 
     <div v-if="!loaded" class="space-y-6" aria-label="Loading analytics">
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -223,7 +237,7 @@ onMounted(async () => {
                 <span class="h-2 w-2 rounded-full bg-accent" />Active ({{ courseCounts.active }})
               </span>
               <span class="inline-flex items-center gap-1.5">
-                <span class="h-2 w-2 rounded-full bg-primary" />Completed ({{ courseCounts.completed }})
+                <span class="h-2 w-2 rounded-full bg-brand" />Completed ({{ courseCounts.completed }})
               </span>
               <span class="inline-flex items-center gap-1.5">
                 <span class="h-2 w-2 rounded-full bg-muted" />Archived ({{ courseCounts.archived }})

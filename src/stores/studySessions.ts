@@ -165,6 +165,7 @@ export const useStudySessionsStore = defineStore('studySessions', () => {
       focusRating: input.focusRating,
       description: input.description ?? null,
     }
+    error.value = ''
     try {
       const session = await createStudySessionRequest(sessionInput)
       sessions.value = [session, ...sessions.value]
@@ -177,6 +178,7 @@ export const useStudySessionsStore = defineStore('studySessions', () => {
   }
 
   async function removeSession(id: string): Promise<boolean> {
+    error.value = ''
     try {
       await deleteStudySessionRequest(id)
       sessions.value = sessions.value.filter((session) => session.id !== id)

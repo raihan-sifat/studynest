@@ -3,7 +3,9 @@ import { defineStore } from 'pinia'
 import { useLocalStorage } from '@vueuse/core'
 
 export const useThemeStore = defineStore('theme', () => {
-  const isDark = useLocalStorage('studynest-theme', false)
+  const isDark = useLocalStorage('studynest-theme', () =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches,
+  )
 
   watchEffect(() => {
     document.documentElement.classList.toggle('dark', isDark.value)
@@ -13,9 +15,5 @@ export const useThemeStore = defineStore('theme', () => {
     isDark.value = !isDark.value
   }
 
-  function setDark(value: boolean): void {
-    isDark.value = value
-  }
-
-  return { isDark, toggle, setDark }
+  return { isDark, toggle }
 })

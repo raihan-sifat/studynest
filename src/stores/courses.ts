@@ -50,6 +50,7 @@ export const useCoursesStore = defineStore('courses', () => {
   }
 
   async function createCourse(input: CourseInput): Promise<Course | null> {
+    error.value = ''
     try {
       const course = await createCourseRequest(input)
       courses.value = [course, ...courses.value]
@@ -61,6 +62,7 @@ export const useCoursesStore = defineStore('courses', () => {
   }
 
   async function updateCourse(id: string, input: CourseInput): Promise<Course | null> {
+    error.value = ''
     try {
       const updated = await updateCourseRequest(id, input)
       courses.value = courses.value.map((course) => (course.id === id ? updated : course))
@@ -72,6 +74,7 @@ export const useCoursesStore = defineStore('courses', () => {
   }
 
   async function removeCourse(id: string): Promise<boolean> {
+    error.value = ''
     try {
       await deleteCourseRequest(id)
       courses.value = courses.value.filter((course) => course.id !== id)
