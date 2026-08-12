@@ -1,5 +1,6 @@
 import { getSupabase, supabase } from '@/services/supabase'
 import type { Profile } from '@/types'
+import { toCamel } from '@/utils/rows'
 
 export interface ProfileInput {
   name?: string
@@ -19,7 +20,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   if (error) {
     return null
   }
-  return data as Profile
+  return data ? toCamel<Profile>(data) : null
 }
 
 export async function upsertProfile(userId: string, input: ProfileInput): Promise<Profile> {
@@ -39,5 +40,5 @@ export async function upsertProfile(userId: string, input: ProfileInput): Promis
   if (error) {
     throw new Error(error.message)
   }
-  return data as Profile
+  return toCamel<Profile>(data)
 }

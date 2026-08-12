@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Flag, Pause, Play, Timer, Trash2 } from '@lucide/vue'
+import { BellRing, Flag, Hourglass, Pause, Play, RotateCcw, Timer, Trash2 } from '@lucide/vue'
 import type { StudySession } from '@/types'
-import { useStudySessionsStore } from '@/stores/studySessions'
+import { useStudySessionsStore, type SessionMode } from '@/stores/studySessions'
 import { useCoursesStore } from '@/stores/courses'
-import { formatElapsed, formatMinutes, formatSessionTime } from '@/utils/time'
+import { formatCountdown, formatElapsed, formatMinutes, formatSessionTime } from '@/utils/time'
+import { initAudio, playChime } from '@/utils/sound'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 import FinishSessionModal from '@/components/studySessions/FinishSessionModal.vue'
+
+const RING_RADIUS = 106
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 const sessionsStore = useStudySessionsStore()
 const coursesStore = useCoursesStore()
@@ -23,6 +28,17 @@ const finishing = ref(false)
 const deletingSession = ref<StudySession | null>(null)
 const deleting = ref(false)
 const discardOpen = ref(false)
+const expiryHandled = ref(false)
+
+const mode = ref<SessionMode>('stopwatch')
+const timerMinutes = ref(25)
+const customMinutes = ref('')
+const timerPresets = [5, 10, 15, 25, 30, 45, 60]
+
+const modeOptions: { value: SessionMode; label: string; icon: typeof Timer }[] = [
+  { value: 'stopwatch', label: 'Stopwatch', icon: Timer },
+  { value: 'timer', label: 'Timer', icon: Hourglass },
+]
 
 let intervalId: ReturnType<typeof setInterval> | undefined
 
@@ -36,13 +52,78 @@ const courseTitle = (courseId: string | null) =>
 
 const courseColor = (courseId: string | null) => coursesStore.byId.get(courseId ?? '')?.color ?? ''
 
-const elapsed = computed(() => formatElapsed(sessionsStore.elapsedMs(now.value)))
-
+const activeMode = computed(() => sessionsStore.active?.mode ?? 'stopwatch')
 const activeCourseTitle = computed(() => courseTitle(sessionsStore.active?.courseId ?? null))
+const activeCourseColor = computed(() => courseColor(sessionsStore.active?.courseId ?? null))
 
-const activeCourseColor = computed(() =>
-  courseColor(sessionsStore.active?.courseId ?? null),
+const remainingMs = computed(() => sessionsStore.elapsedMs(now.value))
+const stopwatchLabel = computed(() => formatElapsed(remainingMs.value))
+const countdownLabel = computed(() => formatCountdown(remainingMs.value))
+const timerExpired = computed(() => sessionsStore.isExpired(now.value))
+
+const timerProgress = computed(() => {
+  const active = sessionsStore.active
+  if (!active || active.totalMs === null || active.totalMs <= 0) {
+    return 0
+  }
+  return Math.min(1, Math.max(0, remainingMs.value / active.totalMs))
+})
+
+const urgencyColor = computed(() => {
+  if (timerExpired.value) {
+    return 'danger'
+  }
+  if (remainingMs.value <= 60_000) {
+    return 'danger'
+  }
+  if (remainingMs.value <= 600_000) {
+    return 'warning'
+  }
+  return 'accent'
+})
+
+const ringStrokeClass = computed(() =>
+  urgencyColor.value === 'danger' ? 'stroke-danger' : urgencyColor.value === 'warning' ? 'stroke-warning' : 'stroke-accent',
 )
+
+const digitClass = computed(() =>
+  urgencyColor.value === 'danger' ? 'text-danger' : urgencyColor.value === 'warning' ? 'text-warning' : 'text-accent',
+)
+
+const statusLabel = computed(() => {
+  if (timerExpired.value) {
+    return "Time's up!"
+  }
+  if (sessionsStore.isRunning) {
+    return 'Focusing…'
+  }
+  return 'Paused'
+})
+
+const statusClass = computed(() => {
+  if (timerExpired.value) {
+    return 'text-danger'
+  }
+  if (sessionsStore.isRunning) {
+    return 'text-accent'
+  }
+  return 'text-muted'
+})
+
+const timerMs = computed(() => {
+  const minutes = Number(timerMinutes.value)
+  if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) {
+    return null
+  }
+  return Math.round(minutes * 60_000)
+})
+
+const startLabel = computed(() => {
+  if (mode.value === 'timer') {
+    return timerMs.value !== null ? `Start ${formatCountdown(timerMs.value)} timer` : 'Start timer'
+  }
+  return 'Start session'
+})
 
 const filteredSessions = computed(() => {
   if (courseFilter.value === 'all') {
@@ -59,19 +140,84 @@ const periodCards = computed(() => [
 
 onMounted(async () => {
   await Promise.all([sessionsStore.fetchSessions(), coursesStore.fetchCourses()])
+  now.value = Date.now()
   intervalId = setInterval(() => {
     now.value = Date.now()
+    handleExpiry()
   }, 1000)
+  handleExpiry()
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   if (intervalId) {
     clearInterval(intervalId)
   }
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
+function onVisibilityChange(): void {
+  if (document.visibilityState === 'visible') {
+    now.value = Date.now()
+    handleExpiry()
+  }
+}
+
+function handleExpiry(): void {
+  if (expiryHandled.value || !sessionsStore.active || sessionsStore.active.paused) {
+    return
+  }
+  if (!timerExpired.value) {
+    return
+  }
+  expiryHandled.value = true
+  playChime()
+  finishOpen.value = true
+}
+
+function selectPreset(minutes: number): void {
+  timerMinutes.value = minutes
+  customMinutes.value = ''
+}
+
+function onCustomMinutes(value: string): void {
+  customMinutes.value = value
+  const parsed = Number(value)
+  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 240) {
+    timerMinutes.value = parsed
+  }
+}
+
 function start(): void {
-  sessionsStore.startSession(courseFilter.value === 'all' ? null : courseFilter.value)
+  if (mode.value === 'timer') {
+    if (timerMs.value === null) {
+      return
+    }
+    sessionsStore.startSession(
+      courseFilter.value === 'all' ? null : courseFilter.value,
+      'timer',
+      timerMs.value,
+    )
+  } else {
+    sessionsStore.startSession(courseFilter.value === 'all' ? null : courseFilter.value, 'stopwatch')
+  }
+  expiryHandled.value = false
+  initAudio()
+}
+
+function restartTimer(): void {
+  const active = sessionsStore.active
+  if (!active) {
+    return
+  }
+  const courseId = active.courseId
+  const totalMs = active.totalMs
+  sessionsStore.discardSession()
+  if (totalMs !== null) {
+    sessionsStore.startSession(courseId, 'timer', totalMs)
+  }
+  expiryHandled.value = false
+  initAudio()
 }
 
 function togglePause(): void {
@@ -88,10 +234,14 @@ function clearFilters(): void {
 
 async function finish(rating: number, description: string): Promise<void> {
   finishing.value = true
-  const ok = await sessionsStore.finishSession({ focusRating: rating as 1 | 2 | 3 | 4 | 5, description })
+  const ok = await sessionsStore.finishSession({
+    focusRating: rating as 1 | 2 | 3 | 4 | 5,
+    description,
+  })
   finishing.value = false
   if (ok) {
     finishOpen.value = false
+    expiryHandled.value = false
   }
 }
 
@@ -111,65 +261,171 @@ async function confirmDelete(): Promise<void> {
 
 <template>
   <div>
-    <PageHeader title="Study Sessions" description="Track focused study time with the timer." />
+    <PageHeader title="Study Sessions" description="Track focused study time with the stopwatch or a countdown timer." />
 
     <p v-if="sessionsStore.error" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
       {{ sessionsStore.error }}
     </p>
 
     <BaseCard padding="lg" class="text-center">
-      <div v-if="sessionsStore.active" class="flex flex-col items-center">
-        <span
-          v-if="activeCourseTitle !== 'General'"
-          class="inline-flex items-center gap-1.5 text-sm text-secondary"
+      <div
+        v-if="!sessionsStore.active"
+        class="inline-flex items-center gap-1 rounded-xl border border-border bg-background p-1"
+        role="tablist"
+        aria-label="Session mode"
+      >
+        <button
+          v-for="option in modeOptions"
+          :key="option.value"
+          type="button"
+          role="tab"
+          :aria-selected="mode === option.value"
+          class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          :class="
+            mode === option.value
+              ? 'bg-accent text-white shadow-card'
+              : 'text-secondary hover:text-primary'
+          "
+          @click="mode = option.value"
         >
-          <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: activeCourseColor }" />
-          {{ activeCourseTitle }}
-        </span>
-        <span
-          class="mt-3 font-mono text-5xl font-semibold tabular-nums tracking-tight text-primary"
-          :class="sessionsStore.isRunning ? 'text-accent' : ''"
-          aria-live="polite"
-        >
-          {{ elapsed }}
-        </span>
-        <span class="mt-1 text-xs font-medium" :class="sessionsStore.isRunning ? 'text-accent' : 'text-muted'">
-          {{ sessionsStore.isRunning ? 'Focusing…' : 'Paused' }}
-        </span>
+          <component :is="option.icon" :size="16" />
+          {{ option.label }}
+        </button>
+      </div>
 
-        <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <BaseButton variant="secondary" @click="togglePause">
-            <Pause v-if="sessionsStore.isRunning" :size="16" />
-            <Play v-else :size="16" />
-            {{ sessionsStore.isRunning ? 'Pause' : 'Resume' }}
-          </BaseButton>
-          <BaseButton @click="finishOpen = true">
-            <Flag :size="16" />
-            Finish
-          </BaseButton>
-          <BaseButton variant="ghost" class="text-danger hover:!bg-danger/10" @click="discardOpen = true">
-            Discard
-          </BaseButton>
+      <div v-if="sessionsStore.active" class="flex flex-col items-center">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <span
+            v-if="activeCourseTitle !== 'General'"
+            class="inline-flex items-center gap-1.5 text-sm text-secondary"
+          >
+            <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: activeCourseColor }" />
+            {{ activeCourseTitle }}
+          </span>
+          <span class="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-xs font-medium text-secondary">
+            <component :is="activeMode === 'timer' ? Hourglass : Timer" :size="13" />
+            {{ activeMode === 'timer' ? 'Countdown timer' : 'Stopwatch' }}
+          </span>
+        </div>
+
+        <div v-if="activeMode === 'timer'" class="relative mt-4">
+          <svg
+            class="-rotate-90"
+            width="252"
+            height="252"
+            viewBox="0 0 252 252"
+            role="timer"
+            :aria-label="`${countdownLabel} remaining`"
+          >
+            <circle cx="126" cy="126" :r="RING_RADIUS" fill="none" stroke-width="9" class="stroke-border" />
+            <circle
+              cx="126"
+              cy="126"
+              :r="RING_RADIUS"
+              fill="none"
+              stroke-width="9"
+              stroke-linecap="round"
+              :class="ringStrokeClass"
+              :stroke-dasharray="RING_CIRCUMFERENCE"
+              :stroke-dashoffset="RING_CIRCUMFERENCE * (1 - timerProgress)"
+              style="transition: stroke-dashoffset 0.9s linear, stroke 0.3s ease"
+            />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="font-mono text-5xl font-semibold tabular-nums tracking-tight" :class="digitClass">
+              {{ countdownLabel }}
+            </span>
+            <span class="mt-1 flex items-center gap-1.5 text-xs font-medium" :class="statusClass">
+              <BellRing v-if="timerExpired" :size="13" />
+              {{ statusLabel }}
+            </span>
+          </div>
+        </div>
+
+        <div v-else class="mt-4">
+          <span class="font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary">
+            {{ stopwatchLabel }}
+          </span>
+          <p class="mt-2 text-xs font-medium" :class="statusClass">{{ statusLabel }}</p>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <template v-if="timerExpired">
+            <BaseButton variant="secondary" @click="restartTimer">
+              <RotateCcw :size="16" />
+              Restart
+            </BaseButton>
+            <BaseButton @click="finishOpen = true">
+              <Flag :size="16" />
+              Finish &amp; rate
+            </BaseButton>
+          </template>
+          <template v-else>
+            <BaseButton variant="secondary" @click="togglePause">
+              <Pause v-if="sessionsStore.isRunning" :size="16" />
+              <Play v-else :size="16" />
+              {{ sessionsStore.isRunning ? 'Pause' : 'Resume' }}
+            </BaseButton>
+            <BaseButton @click="finishOpen = true">
+              <Flag :size="16" />
+              {{ activeMode === 'timer' ? 'Finish early' : 'Finish' }}
+            </BaseButton>
+            <BaseButton variant="ghost" class="text-danger hover:!bg-danger/10" @click="discardOpen = true">
+              Discard
+            </BaseButton>
+          </template>
         </div>
       </div>
 
       <div v-else class="flex flex-col items-center">
-        <Timer :size="36" class="text-muted" />
-        <h3 class="mt-3 text-lg font-semibold text-primary">Ready to focus?</h3>
-        <p class="mt-1 max-w-sm text-sm text-secondary">
-          Start a timer for a study session. You can pause and resume anytime — the timer keeps
-          running even if you leave this page.
-        </p>
-        <div class="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-          <BaseSelect
-            v-model="courseFilter"
-            label="Course"
-            class="w-56"
-            :options="courseOptions"
+        <template v-if="mode === 'timer'">
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button
+              v-for="preset in timerPresets"
+              :key="preset"
+              type="button"
+              class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
+              :class="
+                timerMinutes === preset
+                  ? 'border-accent bg-accent text-white'
+                  : 'border-border text-secondary hover:border-accent hover:text-accent'
+              "
+              @click="selectPreset(preset)"
+            >
+              {{ preset }} min
+            </button>
+          </div>
+          <BaseInput
+            type="number"
+            label="Custom minutes"
+            :model-value="customMinutes"
+            placeholder="e.g. 45"
+            class="mt-4 w-36"
+            @update:model-value="onCustomMinutes"
           />
-          <BaseButton size="lg" @click="start">
+          <p class="mt-5 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary" role="timer">
+            {{ timerMs !== null ? formatCountdown(timerMs) : '--:--' }}
+          </p>
+          <p class="mt-2 text-xs text-muted">A chime will play when the time is up.</p>
+        </template>
+
+        <template v-else>
+          <Timer :size="36" class="text-muted" />
+          <p class="mt-4 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary" role="timer">
+            00:00:00
+          </p>
+          <h3 class="mt-3 text-lg font-semibold text-primary">Ready to focus?</h3>
+          <p class="mt-1 max-w-sm text-sm text-secondary">
+            Counts up while you study. You can pause and resume anytime — the timer keeps running
+            even if you leave this page.
+          </p>
+        </template>
+
+        <div class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:items-end sm:justify-center">
+          <BaseSelect v-model="courseFilter" label="Course" class="w-56" :options="courseOptions" />
+          <BaseButton size="lg" :disabled="mode === 'timer' && timerMs === null" @click="start">
             <Play :size="18" />
-            Start session
+            {{ startLabel }}
           </BaseButton>
         </div>
       </div>
@@ -216,7 +472,10 @@ async function confirmDelete(): Promise<void> {
           :key="session.id"
           class="flex items-start gap-3 rounded-lg border border-border bg-background p-3"
         >
-          <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: courseColor(session.courseId) || '#8B8B96' }" />
+          <span
+            class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+            :style="{ backgroundColor: courseColor(session.courseId) || '#8B8B96' }"
+          />
 
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
@@ -259,7 +518,7 @@ async function confirmDelete(): Promise<void> {
       title="Discard session?"
       message="This session will be discarded and not saved. Start over whenever you're ready."
       @close="discardOpen = false"
-      @confirm="sessionsStore.discardSession(); discardOpen = false"
+      @confirm="sessionsStore.discardSession(); discardOpen = false; expiryHandled = false"
     />
 
     <BaseConfirmDialog

@@ -1,5 +1,6 @@
 import { getSupabase, supabase } from '@/services/supabase'
 import type { Note } from '@/types'
+import { toCamel, toCamelArray } from '@/utils/rows'
 
 export interface NoteInput {
   title: string
@@ -33,7 +34,7 @@ export async function listNotes(filters: NoteFilters = {}): Promise<Note[]> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Note[]
+  return toCamelArray<Note>(data ?? [])
 }
 
 export async function createNote(input: NoteInput): Promise<Note> {
@@ -52,7 +53,7 @@ export async function createNote(input: NoteInput): Promise<Note> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Note
+  return toCamel<Note>(data)
 }
 
 export async function updateNote(id: string, input: NoteInput): Promise<Note> {
@@ -72,7 +73,7 @@ export async function updateNote(id: string, input: NoteInput): Promise<Note> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Note
+  return toCamel<Note>(data)
 }
 
 export async function deleteNote(id: string): Promise<void> {

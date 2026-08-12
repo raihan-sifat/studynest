@@ -1,5 +1,6 @@
 import { getSupabase, supabase } from '@/services/supabase'
 import type { Task, TaskPriority, TaskStatus } from '@/types'
+import { toCamel, toCamelArray } from '@/utils/rows'
 
 export interface TaskInput {
   title: string
@@ -35,7 +36,7 @@ export async function listTasks(filters: TaskFilters = {}): Promise<Task[]> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Task[]
+  return toCamelArray<Task>(data ?? [])
 }
 
 export async function createTask(input: TaskInput): Promise<Task> {
@@ -56,7 +57,7 @@ export async function createTask(input: TaskInput): Promise<Task> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Task
+  return toCamel<Task>(data)
 }
 
 export async function updateTask(id: string, input: TaskInput): Promise<Task> {
@@ -78,7 +79,7 @@ export async function updateTask(id: string, input: TaskInput): Promise<Task> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Task
+  return toCamel<Task>(data)
 }
 
 export async function patchTaskStatus(id: string, status: TaskStatus): Promise<Task> {
@@ -92,7 +93,7 @@ export async function patchTaskStatus(id: string, status: TaskStatus): Promise<T
   if (error) {
     throw new Error(error.message)
   }
-  return data as Task
+  return toCamel<Task>(data)
 }
 
 export async function deleteTask(id: string): Promise<void> {

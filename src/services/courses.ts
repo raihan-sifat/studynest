@@ -1,5 +1,6 @@
 import { getSupabase, supabase } from '@/services/supabase'
 import type { Course, CourseStatus } from '@/types'
+import { toCamel, toCamelArray } from '@/utils/rows'
 
 export interface CourseInput {
   title: string
@@ -20,7 +21,7 @@ export async function listCourses(): Promise<Course[]> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Course[]
+  return toCamelArray<Course>(data ?? [])
 }
 
 export async function getCourse(id: string): Promise<Course | null> {
@@ -31,7 +32,7 @@ export async function getCourse(id: string): Promise<Course | null> {
   if (error) {
     throw new Error(error.message)
   }
-  return (data as Course) ?? null
+  return data ? toCamel<Course>(data) : null
 }
 
 export async function createCourse(input: CourseInput): Promise<Course> {
@@ -50,7 +51,7 @@ export async function createCourse(input: CourseInput): Promise<Course> {
   if (error) {
     throw new Error(error.message)
   }
-  return data as Course
+  return toCamel<Course>(data)
 }
 
 export async function updateCourse(id: string, input: CourseInput): Promise<Course> {
@@ -70,7 +71,7 @@ export async function updateCourse(id: string, input: CourseInput): Promise<Cour
   if (error) {
     throw new Error(error.message)
   }
-  return data as Course
+  return toCamel<Course>(data)
 }
 
 export async function deleteCourse(id: string): Promise<void> {

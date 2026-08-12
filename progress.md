@@ -96,14 +96,24 @@
 - **Live verification:** bilingual create, tag `contains` filter, content search, tag update, delete + cleanup ✅, `/app/notes` HTTP 200 ✅
 
 ### Milestone 7
-- **`src/utils/time.ts`** (testable): `formatElapsed` (HH:MM:SS), `formatMinutes`, `sessionDurationMinutes` (stored value with ended-started fallback), `totalMinutes`, `totalMinutesForPeriod` for day/week/month boundaries (ISO week, local tz), `formatSessionTime`
+- **`src/utils/time.ts`** (testable): `formatElapsed` (HH:MM:SS), `formatCountdown` (M:SS / H:MM:SS, ceil), `formatMinutes`, `sessionDurationMinutes` (stored value with ended-started fallback), `totalMinutes`, `totalMinutesForPeriod` for day/week/month boundaries (ISO week, local tz), `formatSessionTime`
 - **`src/services/studySessions.ts`**: list (course filter + limit), create, update, delete; rows insert with `duration_minutes`, `focus_rating`, `description`
-- **`src/stores/studySessions.ts`**: sessions list; **refresh-safe active timer** persisted to localStorage — state tracks `originalStartedAt` (wall-clock start, survives pause/resume), segment `startedAt`, `accumulatedMs`, `paused`; `elapsedMs(now)` computes paused-or-running elapsed; start/pause/resume/discard/finish (creates row, clears storage); `totals` computed via utils; `sessionsForCourse`
+- **`src/stores/studySessions.ts`**: sessions list; **refresh-safe active timer** persisted to localStorage — state tracks `mode` (stopwatch | timer), `originalStartedAt` (wall-clock start, survives pause/resume), segment `startedAt`, `accumulatedMs`, `paused`, `totalMs`; `elapsedMs(now)` counts up for stopwatch / counts down for timer (clamped ≥ 0); `isExpired(now)`; start/pause/resume/discard/finish (timer: saved duration = actual elapsed on early finish, full duration on natural expiry); `totals` computed via utils; `sessionsForCourse`
+- **`src/utils/sound.ts`**: Web Audio chime (`initAudio` on user gesture, ascending C5-E5-G5-C6 sine notes on `playChime`) — no asset files needed
 - **`FinishSessionModal`**: 1–5 star focus rating (required) + optional description textarea
-- **Study Sessions page** (`/app/sessions`): live timer card (1s tick interval, monospace HH:MM:SS, Pause/Resume/Finish/Discard), course selector on start (also doubles as list filter), Today/This week/This month total cards, recent sessions list (course dot, time, duration, ★ rating, description, delete confirm), course filter, empty/no-match states
+- **Study Sessions page** (`/app/sessions`) — two modes via segmented control:
+  - **Stopwatch**: counts up (existing behavior)
+  - **Timer**: preset chips (5/10/15/25/30/45/60 min) + custom minutes input (1–240), countdown with SVG progress ring (smooth sweep), urgency colors (accent → warning <10 min → danger <1 min), chime + "Time's up!" on expiry with auto-opened finish modal, Restart/Finish buttons, expiry re-checked on tab visibility change
+  - Both: refresh-safe (localStorage), pause/resume/finish-early/discard, course selector, Today/This week/This month totals, history with course filter + delete confirm, empty/no-match states
+- **`style.css`**: added `warning` color token (light + dark)
 - **Course detail page:** live study sessions card (last 5, total focused time for the course, "Start session" links to timer, delete)
 - **App layout:** "Sessions" nav item (Timer icon) added between Notes and Goals
 - **Live verification:** session create/update/delete + course filter + CHECK constraint rejections (`duration_minutes=0`, `focus_rating=9`) ✅; time utils math verified in Node (format cases + period totals) ✅; `/app/sessions` HTTP 200 ✅
+
+### Milestone 7.5 — snake→camel row mapping fix
+- **Root cause:** services returned raw PostgREST rows (snake_case keys like `started_at`) while UI types expect camelCase — session list render threw on `formatSessionTime(undefined)` after finishing, and due dates / course names / note content / profile avatar were silently missing elsewhere
+- **`src/utils/rows.ts`**: `toCamel` / `toCamelArray` mappers; applied to every response in courses, tasks, notes, studySessions, profiles services
+- **Verified:** mapper tested live against real DB rows (session `startedAt`/`courseId`/`durationMinutes`, task `dueDate`/`estimatedMinutes`) ✅
 
 ### Key files
 ```
@@ -135,7 +145,7 @@ src/types/index.ts         # domain types
 
 ## Open Items / Decisions
 
-- [ ] **Milestone 7 not committed yet.** Last commit was `docs: update progress log for milestone 6`. Commit when ready (`feat(study-sessions)`).
+- [ ] **Session modes + snake→camel fix not committed yet.** Last commit was `feat(study-sessions)`. Commit when ready (e.g. `feat(study-sessions): add countdown timer mode with chime`).
 - [ ] **Email confirmation is currently OFF** in Supabase (toggled for RLS testing) — re-enable in Authentication → Sign In / Up → Email if you want it on.
 - [ ] Test users `sifatraihan222@gmail.com` / `sifatraihan2003@gmail.com` exist in the project (can delete in Authentication → Users).
 - [ ] The old unconfirmed test user `test-1786457662863@studynest.dev` can be deleted too.

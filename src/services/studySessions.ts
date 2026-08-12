@@ -1,5 +1,6 @@
 import { getSupabase, supabase } from '@/services/supabase'
 import type { FocusRating, StudySession } from '@/types'
+import { toCamel, toCamelArray } from '@/utils/rows'
 
 export interface StudySessionInput {
   courseId?: string | null
@@ -30,7 +31,7 @@ export async function listStudySessions(filters: StudySessionFilters = {}): Prom
   if (error) {
     throw new Error(error.message)
   }
-  return data as StudySession[]
+  return toCamelArray<StudySession>(data ?? [])
 }
 
 export async function createStudySession(input: StudySessionInput): Promise<StudySession> {
@@ -50,7 +51,7 @@ export async function createStudySession(input: StudySessionInput): Promise<Stud
   if (error) {
     throw new Error(error.message)
   }
-  return data as StudySession
+  return toCamel<StudySession>(data)
 }
 
 export async function updateStudySession(
@@ -74,7 +75,7 @@ export async function updateStudySession(
   if (error) {
     throw new Error(error.message)
   }
-  return data as StudySession
+  return toCamel<StudySession>(data)
 }
 
 export async function deleteStudySession(id: string): Promise<void> {
