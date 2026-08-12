@@ -6,9 +6,11 @@ import { ArrowLeft, BookOpen, CalendarDays, Check, CheckSquare, ListTodo, Pencil
 import { useCoursesStore } from '@/stores/courses'
 import { useTasksStore } from '@/stores/tasks'
 import { useNotesStore } from '@/stores/notes'
+import { useGoalsStore } from '@/stores/goals'
 import { useStudySessionsStore } from '@/stores/studySessions'
-import type { Course, Note, StudySession, Task } from '@/types'
+import type { Course, Goal, Note, StudySession, Task } from '@/types'
 import { formatMinutes, formatSessionTime, totalMinutes } from '@/utils/time'
+import { goalPhase, goalProgressPercent } from '@/utils/progress'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -17,6 +19,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import CourseFormModal from '@/components/courses/CourseFormModal.vue'
 import TaskFormModal from '@/components/tasks/TaskFormModal.vue'
 import NoteFormModal from '@/components/notes/NoteFormModal.vue'
+import GoalFormModal from '@/components/goals/GoalFormModal.vue'
 import BaseConfirmDialog from '@/components/ui/BaseConfirmDialog.vue'
 
 const route = useRoute()
@@ -24,6 +27,7 @@ const router = useRouter()
 const coursesStore = useCoursesStore()
 const tasksStore = useTasksStore()
 const notesStore = useNotesStore()
+const goalsStore = useGoalsStore()
 const sessionsStore = useStudySessionsStore()
 
 const courseId = computed(() => String(route.params.id ?? ''))
@@ -33,10 +37,13 @@ const notFound = ref(false)
 const formOpen = ref(false)
 const taskFormOpen = ref(false)
 const noteFormOpen = ref(false)
+const goalFormOpen = ref(false)
 const deletingTask = ref<Task | null>(null)
 const deleting = ref(false)
 const deletingNote = ref<Note | null>(null)
 const deletingNoteBusy = ref(false)
+const deletingGoal = ref<Goal | null>(null)
+const deletingGoalBusy = ref(false)
 const deletingSession = ref<StudySession | null>(null)
 const deletingSessionBusy = ref(false)
 
@@ -53,6 +60,12 @@ const courseTasks = computed(() =>
 const courseNotes = computed(() =>
   notesStore.notes.filter((note) => note.courseId === courseId.value),
 )
+
+const courseGoals = computed(() =>
+  goalsStore.goals.filter((goal) => goal.courseId === courseId.value),
+)
+
+const progressOf = (goal: Goal) => goalProgressPercent(goal.currentValue, goal.targetValue)
 
 const courseSessions = computed(() => sessionsStore.sessionsForCourse(courseId.value))
 
@@ -87,6 +100,7 @@ async function load(): Promise<void> {
   }
   await tasksStore.fetchTasks()
   await notesStore.fetchNotes()
+  await goalsStore.fetchGoals()
   await sessionsStore.fetchSessions()
   loading.value = false
 }
@@ -125,6 +139,19 @@ async function confirmDeleteNote(): Promise<void> {
   deletingNoteBusy.value = false
   if (ok) {
     deletingNote.value = null
+  }
+}
+
+async function confirmDeleteGoal(): Promise<void> {
+  const goal = deletingGoal.value
+  if (!goal) {
+    return
+  }
+  deletingGoalBusy.value = true
+  const ok = await goalsStore.removeGoal(goal.id)
+  deletingGoalBusy.value = false
+  if (ok) {
+    deletingGoal.value = null
   }
 }
 
@@ -310,15 +337,78 @@ async function confirmDeleteSession(): Promise<void> {
         </BaseCard>
 
         <BaseCard>
-          <div class="flex items-center gap-2">
-            <Target :size="18" class="text-accent" />
-            <h3 class="font-semibold text-primary">Goals</h3>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Target :size="18" class="text-accent" />
+              <h3 class="font-semibold text-primary">Goals</h3>
+              <span class="rounded-md bg-background px-1.5 py-0.5 text-xs text-secondary">
+                {{ courseGoals.length }}
+              </span>
+            </div>
+            <BaseButton size="sm" variant="secondary" @click="goalFormOpen = true">
+              <Plus :size="14" />
+              New goal
+            </BaseButton>
           </div>
-          <EmptyState
-            :icon="Target"
-            title="No goals yet"
-            description="Goals for this course will appear here in Milestone 8."
-          />
+
+          <div v-if="goalsStore.loading" class="mt-3 space-y-2">
+            <div v-for="i in 2" :key="i" class="h-12 animate-pulse rounded-lg bg-background" />
+          </div>
+
+          <div v-else-if="courseGoals.length === 0" class="mt-2">
+            <EmptyState
+              :icon="Target"
+              title="No goals yet"
+              description="Set targets for this course and track your progress toward them."
+            />
+          </div>
+
+          <ul v-else class="mt-3 space-y-2">
+            <li
+              v-for="goal in courseGoals"
+              :key="goal.id"
+              class="rounded-lg border border-border bg-background px-3 py-2.5"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="min-w-0 flex-1 truncate text-sm font-medium text-primary">
+                  {{ goal.title }}
+                </span>
+                <div class="flex shrink-0 items-center gap-1">
+                  <span class="text-xs font-semibold" :class="goalPhase(goal) === 'overdue' ? 'text-danger' : 'text-accent'">
+                    {{ progressOf(goal) }}%
+                  </span>
+                  <button
+                    class="shrink-0 rounded-lg p-1 text-muted transition-colors hover:bg-surface hover:text-danger"
+                    :aria-label="`Delete ${goal.title}`"
+                    @click="deletingGoal = goal"
+                  >
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2">
+                <div
+                  class="h-1.5 flex-1 overflow-hidden rounded-full bg-surface"
+                  role="progressbar"
+                  :aria-valuenow="progressOf(goal)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  :aria-label="`Progress of ${goal.title}`"
+                >
+                  <div
+                    class="h-full rounded-full transition-all"
+                    :class="goalPhase(goal) === 'overdue' ? 'bg-danger' : 'bg-accent'"
+                    :style="{ width: `${progressOf(goal)}%` }"
+                  />
+                </div>
+                <span class="shrink-0 text-xs text-muted">{{ goal.currentValue }} / {{ goal.targetValue }}</span>
+              </div>
+              <p v-if="goal.deadline" class="mt-1 text-xs" :class="goalPhase(goal) === 'overdue' ? 'text-danger' : 'text-muted'">
+                {{ goalPhase(goal) === 'overdue' ? 'Overdue' : 'Deadline' }} ·
+                {{ formattedDate(goal.deadline) }}
+              </p>
+            </li>
+          </ul>
         </BaseCard>
 
         <BaseCard>
@@ -408,6 +498,12 @@ async function confirmDeleteSession(): Promise<void> {
         :default-course-id="course.id"
         @close="noteFormOpen = false"
       />
+      <GoalFormModal
+        :open="goalFormOpen"
+        :goal="null"
+        :default-course-id="course.id"
+        @close="goalFormOpen = false"
+      />
       <BaseConfirmDialog
         v-if="deletingTask"
         title="Delete task?"
@@ -423,6 +519,14 @@ async function confirmDeleteSession(): Promise<void> {
         :busy="deletingNoteBusy"
         @close="deletingNote = null"
         @confirm="confirmDeleteNote"
+      />
+      <BaseConfirmDialog
+        v-if="deletingGoal"
+        title="Delete goal?"
+        :message="`Delete “${deletingGoal.title}”? This cannot be undone.`"
+        :busy="deletingGoalBusy"
+        @close="deletingGoal = null"
+        @confirm="confirmDeleteGoal"
       />
       <BaseConfirmDialog
         v-if="deletingSession"
