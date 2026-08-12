@@ -27,3 +27,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI tooling & assistant artifacts — never publish
+.agents/
+.opencode/
+skills-lock.json
+PLAN.md
+progress.md
+StudyNest_AI_Development_Approach.pdf
