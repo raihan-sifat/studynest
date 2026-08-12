@@ -1,4 +1,4 @@
-import { format, startOfISOWeek, startOfMonth, startOfToday } from 'date-fns'
+import { format, startOfISOWeek, startOfMonth, startOfToday, subMonths } from 'date-fns'
 import type { StudySession } from '@/types'
 
 export type PeriodKey = 'day' | 'week' | 'month'
@@ -76,4 +76,37 @@ export function totalMinutesForPeriod(sessions: StudySession[], key: PeriodKey):
 
 export function formatSessionTime(iso: string): string {
   return format(new Date(iso), 'MMM d, HH:mm')
+}
+
+export function totalMinutesBetween(sessions: StudySession[], from: Date, to: Date): number {
+  const start = from.getTime()
+  const end = to.getTime()
+  return sessions.reduce((sum, session) => {
+    const startedAt = new Date(session.startedAt).getTime()
+    if (startedAt >= start && startedAt < end) {
+      return sum + sessionDurationMinutes(session)
+    }
+    return sum
+  }, 0)
+}
+
+export function minutesPerMonth(
+  sessions: StudySession[],
+  months: number,
+  now = new Date(),
+): { label: string; minutes: number }[] {
+  const out: { label: string; minutes: number }[] = []
+  for (let i = months - 1; i >= 0; i--) {
+    const from = startOfMonth(subMonths(now, i))
+    const to = startOfMonth(subMonths(now, i - 1))
+    out.push({ label: format(from, 'MMM'), minutes: totalMinutesBetween(sessions, from, to) })
+  }
+  return out
+}
+
+export function percentChange(current: number, previous: number): number | null {
+  if (previous <= 0) {
+    return current > 0 ? null : 0
+  }
+  return Math.round(((current - previous) / previous) * 100)
 }

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 
+defineOptions({ inheritAttrs: false })
+
 defineProps<{
   label?: string
   modelValue?: string
@@ -28,6 +30,7 @@ const id = `select-${Math.random().toString(36).slice(2, 9)}`
       />
       <select
         :id="id"
+        v-bind="$attrs"
         :value="modelValue"
         class="h-10 w-full appearance-none rounded-lg border border-border bg-surface px-3 pr-9 text-sm text-primary transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
         :class="icon ? 'pl-9' : ''"
