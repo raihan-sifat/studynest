@@ -86,39 +86,49 @@ async function handleLogout(): Promise<void> {
           v-for="item in navItems"
           :key="String(item.to.name)"
           :to="item.to"
-          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          class="group focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out"
           :class="
             isActive(item.to.name)
               ? 'bg-brand-soft text-brand'
-              : 'text-secondary hover:bg-background hover:text-primary'
+              : 'text-secondary hover:translate-x-0.5 hover:bg-background hover:text-primary'
           "
           :aria-current="isActive(item.to.name) ? 'page' : undefined"
         >
-          <component :is="item.icon" :size="18" />
+          <component
+            :is="item.icon"
+            :size="18"
+            class="transition-transform duration-200 ease-out group-hover:scale-110"
+          />
           {{ item.label }}
         </RouterLink>
 
         <RouterLink
           to="/app/settings"
-          class="focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          class="group focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out"
           :class="
             isActive('settings')
               ? 'bg-brand-soft text-brand'
-              : 'text-secondary hover:bg-background hover:text-primary'
+              : 'text-secondary hover:translate-x-0.5 hover:bg-background hover:text-primary'
           "
           :aria-current="isActive('settings') ? 'page' : undefined"
         >
-          <Settings :size="18" />
+          <Settings
+            :size="18"
+            class="transition-transform duration-200 ease-out group-hover:scale-110"
+          />
           Settings
         </RouterLink>
       </nav>
 
       <div class="border-t border-border p-3">
         <button
-          class="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-background hover:text-primary"
+          class="group focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-secondary transition-all duration-200 ease-out hover:translate-x-0.5 hover:bg-background hover:text-primary"
           @click="handleLogout"
         >
-          <LogOut :size="18" />
+          <LogOut
+            :size="18"
+            class="transition-transform duration-200 ease-out group-hover:scale-110"
+          />
           Sign out
         </button>
       </div>
@@ -141,17 +151,53 @@ async function handleLogout(): Promise<void> {
             <Moon v-else :size="18" />
           </button>
 
-          <img
-            v-if="auth.profile?.avatarUrl"
-            :src="auth.profile.avatarUrl"
-            alt="Your profile avatar"
-            class="h-9 w-9 rounded-full bg-surface object-cover ring-1 ring-border"
-          />
           <div
-            v-else
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
+            class="group relative outline-none"
+            role="group"
+            aria-label="Profile"
+            aria-describedby="profile-popup"
+            tabindex="0"
           >
-            {{ auth.user?.email?.charAt(0).toUpperCase() ?? '?' }}
+            <img
+              v-if="auth.profile?.avatarUrl"
+              :src="auth.profile.avatarUrl"
+              alt="Your profile avatar"
+              class="h-9 w-9 rounded-full bg-surface object-cover ring-1 ring-border"
+            />
+            <div
+              v-else
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
+            >
+              {{ auth.user?.email?.charAt(0).toUpperCase() ?? '?' }}
+            </div>
+
+            <div
+              id="profile-popup"
+              class="pointer-events-none absolute right-0 top-full z-40 mt-2 w-64 translate-y-1 rounded-xl border border-border bg-surface p-3 opacity-0 shadow-card transition-all duration-200 ease-out group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
+            >
+              <div class="flex items-center gap-3">
+                <img
+                  v-if="auth.profile?.avatarUrl"
+                  :src="auth.profile.avatarUrl"
+                  alt=""
+                  class="h-9 w-9 shrink-0 rounded-full bg-surface object-cover ring-1 ring-border"
+                />
+                <div
+                  v-else
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
+                >
+                  {{ auth.user?.email?.charAt(0).toUpperCase() ?? '?' }}
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-primary">
+                    {{ auth.profile?.name?.trim() || 'Your account' }}
+                  </p>
+                  <p v-if="auth.user?.email" class="truncate text-xs text-secondary">
+                    {{ auth.user.email }}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>

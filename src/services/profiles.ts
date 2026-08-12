@@ -28,13 +28,16 @@ export async function upsertProfile(userId: string, input: ProfileInput): Promis
   const existing = await getProfile(userId)
   const { data, error } = await client
     .from('profiles')
-    .upsert({
-      user_id: userId,
-      name: input.name ?? existing?.name ?? '',
-      bio: input.bio ?? existing?.bio ?? null,
-      avatar_url: input.avatarUrl ?? existing?.avatarUrl ?? null,
-      updated_at: new Date().toISOString(),
-    })
+    .upsert(
+      {
+        user_id: userId,
+        name: input.name ?? existing?.name ?? '',
+        bio: input.bio ?? existing?.bio ?? null,
+        avatar_url: input.avatarUrl ?? existing?.avatarUrl ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    )
     .select()
     .single()
   if (error) {
