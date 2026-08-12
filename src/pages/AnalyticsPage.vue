@@ -166,7 +166,7 @@ onMounted(async () => {
             />
           </div>
 
-          <div v-if="!hasSessions" class="flex flex-1 items-center">
+          <div v-if="!hasSessions" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="Timer"
               title="No study sessions yet"
@@ -190,7 +190,7 @@ onMounted(async () => {
             <p class="mt-0.5 text-xs text-secondary">Focused minutes per day this week</p>
           </div>
 
-          <div v-if="!hasSessions" class="flex flex-1 items-center">
+          <div v-if="!hasSessions" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="Clock3"
               title="No study sessions yet"
@@ -211,7 +211,7 @@ onMounted(async () => {
             <p class="mt-0.5 text-xs text-secondary">Your courses by status</p>
           </div>
 
-          <div v-if="!hasCourses" class="flex flex-1 items-center">
+          <div v-if="!hasCourses" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="BookOpen"
               title="No courses yet"
@@ -252,7 +252,7 @@ onMounted(async () => {
             <p class="mt-0.5 text-xs text-secondary">Progress toward each active goal</p>
           </div>
 
-          <div v-if="!hasGoals" class="flex flex-1 items-center">
+          <div v-if="!hasGoals" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="Target"
               title="No goals yet"

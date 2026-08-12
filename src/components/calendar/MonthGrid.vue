@@ -29,9 +29,7 @@ const monthStart = ref(startOfMonth(new Date()))
 
 const cells = computed(() => monthGrid(monthStart.value))
 
-const MAX_TASKS = 2
-const MAX_SESSIONS = 1
-const MAX_GOALS = 1
+type ChipKind = 'task' | 'session' | 'goal'
 
 function eventsFor(day: Date): DayEvents | null {
   return props.eventsByDay.get(dayKey(day)) ?? null
@@ -41,12 +39,29 @@ function courseColor(courseId: string | null): string {
   return courseId ? props.coursesById.get(courseId)?.color ?? '' : ''
 }
 
-function shownCount(events: DayEvents): number {
-  return (
-    Math.min(events.tasks.length, MAX_TASKS) +
-    Math.min(events.sessions.length, MAX_SESSIONS) +
-    Math.min(events.goals.length, MAX_GOALS)
-  )
+function chipFor(day: Date): { kind: ChipKind; text: string; color: string } | null {
+  const events = eventsFor(day)
+  if (!events) return null
+  if (events.tasks.length > 0) {
+    return {
+      kind: 'task',
+      text: events.tasks[0].title,
+      color: courseColor(events.tasks[0].courseId) || 'var(--color-muted)',
+    }
+  }
+  if (events.sessions.length > 0) {
+    return { kind: 'session', text: 'Study session', color: '' }
+  }
+  if (events.goals.length > 0) {
+    return { kind: 'goal', text: events.goals[0].title, color: '' }
+  }
+  return null
+}
+
+function chipClass(kind: ChipKind): string {
+  if (kind === 'session') return 'bg-accent-soft text-accent'
+  if (kind === 'goal') return 'bg-warning/15 text-warning'
+  return 'bg-background text-secondary'
 }
 
 function hasEvents(day: Date): boolean {
@@ -108,7 +123,7 @@ function goToToday(): void {
         v-for="day in cells"
         :key="dayKey(day)"
         type="button"
-        class="focus-ring relative flex min-h-16 flex-col gap-1 rounded-lg border p-1 text-left transition-colors sm:min-h-24"
+        class="focus-ring relative flex min-h-12 flex-col gap-1 rounded-lg border p-1 text-left transition-colors sm:min-h-16"
         :class="[
           dayKey(day) === selectedDay ? 'border-accent bg-accent-soft/50' : 'border-transparent hover:border-border hover:bg-background',
           isCurrentMonth(day, monthStart) ? '' : 'opacity-40',
@@ -130,45 +145,29 @@ function goToToday(): void {
           <span v-if="eventsFor(day)!.goals.length" class="h-1.5 w-1.5 rounded-full bg-warning" />
         </span>
 
-        <span v-if="hasEvents(day)" class="hidden min-w-0 flex-col gap-0.5 sm:flex">
+        <span v-if="hasEvents(day)" class="hidden min-w-0 items-center gap-1 sm:flex">
           <span
-            v-for="task in eventsFor(day)!.tasks.slice(0, MAX_TASKS)"
-            :key="task.id"
-            class="flex min-w-0 items-center gap-1 truncate rounded bg-background px-1 py-0.5 text-[10px] text-secondary"
+            v-if="chipFor(day)"
+            class="flex min-w-0 items-center gap-1 rounded px-1 py-0.5 text-[10px]"
+            :class="chipClass(chipFor(day)!.kind)"
           >
             <span
+              v-if="chipFor(day)!.color"
               class="h-1.5 w-1.5 shrink-0 rounded-full"
-              :style="{ backgroundColor: courseColor(task.courseId) || 'var(--color-muted)' }"
+              :style="{ backgroundColor: chipFor(day)!.color }"
             />
-            <span class="truncate">{{ task.title }}</span>
+            <Timer v-if="chipFor(day)!.kind === 'session'" :size="10" class="shrink-0" />
+            <Flag v-else-if="chipFor(day)!.kind === 'goal'" :size="10" class="shrink-0" />
+            <span class="truncate">{{ chipFor(day)!.text }}</span>
           </span>
-          <span
-            v-for="session in eventsFor(day)!.sessions.slice(0, MAX_SESSIONS)"
-            :key="session.id"
-            class="flex min-w-0 items-center gap-1 truncate rounded bg-accent-soft px-1 py-0.5 text-[10px] text-accent"
-          >
-            <Timer :size="10" class="shrink-0" />
-            <span class="truncate">Study session</span>
-          </span>
-          <span
-            v-for="goal in eventsFor(day)!.goals.slice(0, MAX_GOALS)"
-            :key="goal.id"
-            class="flex min-w-0 items-center gap-1 truncate rounded bg-warning/15 px-1 py-0.5 text-[10px] text-warning"
-          >
-            <Flag :size="10" class="shrink-0" />
-            <span class="truncate">{{ goal.title }}</span>
-          </span>
-          <span
-            v-if="totalEventCount(eventsFor(day)) > shownCount(eventsFor(day)!)"
-            class="text-[10px] text-muted"
-          >
-            +{{ totalEventCount(eventsFor(day)) - shownCount(eventsFor(day)!) }} more
+          <span v-if="totalEventCount(eventsFor(day)) > 1" class="shrink-0 text-[10px] text-muted">
+            +{{ totalEventCount(eventsFor(day)) - 1 }} more
           </span>
         </span>
       </button>
     </div>
 
-    <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs text-secondary">
+    <div class="mt-3 flex flex-wrap items-center justify-center gap-4 text-xs text-secondary">
       <span class="inline-flex items-center gap-1.5">
         <ListTodo :size="13" class="text-primary" />
         Tasks due

@@ -284,7 +284,7 @@ function confirmDiscard(): void {
     <BaseCard padding="lg" class="text-center">
       <div
         v-if="!sessionsStore.active"
-        class="inline-flex items-center gap-1 rounded-xl border border-border bg-background p-1"
+        class="mb-6 inline-flex items-center gap-1 rounded-xl border border-border bg-background p-1"
         role="group"
         aria-label="Session mode"
       >
@@ -436,7 +436,7 @@ function confirmDiscard(): void {
 
         <div class="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:items-end sm:justify-center">
           <BaseSelect v-model="courseFilter" label="Course" class="w-56" :options="courseOptions" />
-          <BaseButton size="lg" :disabled="mode === 'timer' && timerMs === null" @click="start">
+          <BaseButton size="md" :disabled="mode === 'timer' && timerMs === null" @click="start">
             <Play :size="18" />
             {{ startLabel }}
           </BaseButton>

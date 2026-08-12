@@ -132,8 +132,10 @@ async function submit(): Promise<void> {
     :open="open"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-      <BaseInput v-model="title" label="Title" placeholder="e.g. Vue reactivity explained" :error="fieldErrors.title" />
+    <form class="grid grid-cols-1 gap-4 sm:grid-cols-2" novalidate @submit.prevent="submit">
+      <div class="sm:col-span-2">
+        <BaseInput v-model="title" label="Title" placeholder="e.g. Vue reactivity explained" :error="fieldErrors.title" />
+      </div>
 
       <BaseTextarea
         v-model="englishContent"
@@ -178,11 +180,11 @@ async function submit(): Promise<void> {
 
       <BaseSelect v-model="courseId" label="Course" :options="courseOptions" :error="fieldErrors.courseId" />
 
-      <p v-if="formError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+      <p v-if="formError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger sm:col-span-2" role="alert">
         {{ formError }}
       </p>
 
-      <div class="mt-2 flex justify-end gap-2">
+      <div class="mt-2 flex justify-end gap-2 sm:col-span-2">
         <BaseButton variant="secondary" :disabled="saving" @click="emit('close')">Cancel</BaseButton>
         <BaseButton type="submit" :disabled="saving">
           {{ saving ? 'Saving…' : note === null ? 'Create note' : 'Save changes' }}

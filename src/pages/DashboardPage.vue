@@ -174,11 +174,11 @@ onMounted(async () => {
           class="h-10 rounded-full border-border bg-surface px-4"
           aria-label="Time period"
         />
-        <BaseButton size="sm" variant="secondary" @click="exportCsv">
+        <BaseButton size="md" variant="secondary" class="rounded-full" @click="exportCsv">
           <Download :size="16" />
           Export
         </BaseButton>
-        <BaseButton size="sm" @click="router.push({ name: 'sessions' })">
+        <BaseButton size="md" class="rounded-full" @click="router.push({ name: 'sessions' })">
           <Play :size="16" />
           New session
         </BaseButton>
@@ -199,86 +199,90 @@ onMounted(async () => {
 
     <template v-else>
       <div class="grid gap-5 md:grid-cols-3">
-        <BaseCard class="relative overflow-hidden rounded-[20px] border-accent bg-accent text-on-accent">
+        <BaseCard class="relative overflow-hidden rounded-[20px]">
           <div
-            class="pointer-events-none absolute inset-0 opacity-10"
+            class="pointer-events-none absolute inset-0 text-muted opacity-10"
             aria-hidden="true"
             style="background-image: repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 12px), radial-gradient(circle at 82% 18%, currentColor 0 2px, transparent 2px 16px)"
           />
-          <div class="relative">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-on-accent/85">Study time</span>
+          <div class="relative flex flex-col items-center text-center">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-secondary">Study time</span>
               <button
-                class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-on-accent/15 text-on-accent transition-colors hover:bg-on-accent/25"
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
                 :aria-label="`View study sessions (${formatMinutes(studyMinutes)} this period)`"
                 @click="router.push({ name: 'sessions' })"
               >
                 <Timer :size="16" />
               </button>
             </div>
-            <p class="mt-3 text-3xl font-bold tabular-nums">{{ formatMinutes(studyMinutes) }}</p>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
+            <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ formatMinutes(studyMinutes) }}</p>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
               <span
                 v-if="studyTrend !== null"
-                class="inline-flex items-center gap-1 rounded-full bg-on-accent/20 px-2.5 py-1 text-xs font-semibold"
+                class="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent"
               >
                 <TrendingUp v-if="studyTrend >= 0" :size="13" />
                 <TrendingDown v-else :size="13" />
                 {{ Math.abs(studyTrend) }}%
-                <span class="font-normal text-on-accent/75">vs {{ previousPeriodLabels[period] }}</span>
+                <span class="font-normal text-secondary">vs {{ previousPeriodLabels[period] }}</span>
               </span>
-              <span v-else class="rounded-full bg-on-accent/20 px-2.5 py-1 text-xs font-semibold">No data yet</span>
+              <span v-else class="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">No data yet</span>
             </div>
           </div>
         </BaseCard>
 
         <BaseCard class="rounded-[20px]">
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-secondary">Tasks completed</span>
-            <button
-              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
-              :aria-label="`View tasks (${doneTasks} of ${totalTasks} done)`"
-              @click="router.push({ name: 'tasks' })"
+          <div class="flex flex-col items-center text-center">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-secondary">Tasks completed</span>
+              <button
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
+                :aria-label="`View tasks (${doneTasks} of ${totalTasks} done)`"
+                @click="router.push({ name: 'tasks' })"
+              >
+                <ListTodo :size="16" />
+              </button>
+            </div>
+            <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ taskPercent }}%</p>
+            <span
+              class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent"
             >
-              <ListTodo :size="16" />
-            </button>
+              <CheckCircle2 :size="13" />
+              {{ doneTasks }} of {{ totalTasks }} tasks done
+            </span>
           </div>
-          <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ taskPercent }}%</p>
-          <span
-            class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent"
-          >
-            <CheckCircle2 :size="13" />
-            {{ doneTasks }} of {{ totalTasks }} tasks done
-          </span>
         </BaseCard>
 
         <BaseCard class="rounded-[20px]">
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-secondary">Courses</span>
-            <button
-              class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
-              :aria-label="`View courses (${totalCourses} total)`"
-              @click="router.push({ name: 'courses' })"
-            >
-              <BookOpen :size="16" />
-            </button>
-          </div>
-          <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ totalCourses }}</p>
-          <div class="mt-3 flex h-2.5 overflow-hidden rounded-full bg-background" role="img" aria-label="Course status breakdown">
-            <div class="bg-accent" :style="{ width: `${segmentPercent(courseCounts.active)}%` }" />
-            <div class="bg-brand" :style="{ width: `${segmentPercent(courseCounts.completed)}%` }" />
-            <div class="bg-muted" :style="{ width: `${segmentPercent(courseCounts.archived)}%` }" />
-          </div>
-          <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-secondary">
-            <span class="inline-flex items-center gap-1.5">
-              <span class="h-2 w-2 rounded-full bg-accent" />Active ({{ courseCounts.active }})
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-              <span class="h-2 w-2 rounded-full bg-brand" />Completed ({{ courseCounts.completed }})
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-              <span class="h-2 w-2 rounded-full bg-muted" />Archived ({{ courseCounts.archived }})
-            </span>
+          <div class="flex flex-col items-center text-center">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-secondary">Courses</span>
+              <button
+                class="focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted transition-colors hover:text-accent"
+                :aria-label="`View courses (${totalCourses} total)`"
+                @click="router.push({ name: 'courses' })"
+              >
+                <BookOpen :size="16" />
+              </button>
+            </div>
+            <p class="mt-3 text-3xl font-bold tabular-nums text-primary">{{ totalCourses }}</p>
+            <div class="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-background" role="img" aria-label="Course status breakdown">
+              <div class="bg-accent" :style="{ width: `${segmentPercent(courseCounts.active)}%` }" />
+              <div class="bg-brand" :style="{ width: `${segmentPercent(courseCounts.completed)}%` }" />
+              <div class="bg-muted" :style="{ width: `${segmentPercent(courseCounts.archived)}%` }" />
+            </div>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs text-secondary">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-accent" />Active ({{ courseCounts.active }})
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-brand" />Completed ({{ courseCounts.completed }})
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-muted" />Archived ({{ courseCounts.archived }})
+              </span>
+            </div>
           </div>
         </BaseCard>
       </div>
@@ -292,7 +296,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div v-if="goalsStore.goals.length === 0" class="flex flex-1 items-center">
+          <div v-if="goalsStore.goals.length === 0" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="Target"
               title="No goals yet"
@@ -345,7 +349,7 @@ onMounted(async () => {
             />
           </div>
 
-          <div v-if="sessionsStore.sessions.length === 0" class="flex flex-1 items-center">
+          <div v-if="sessionsStore.sessions.length === 0" class="flex flex-1 items-center justify-center">
             <EmptyState
               :icon="Timer"
               title="No study sessions yet"

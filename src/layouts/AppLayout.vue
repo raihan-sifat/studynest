@@ -18,6 +18,7 @@ import {
 } from '@lucide/vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const route = useRoute()
@@ -74,11 +75,9 @@ async function handleLogout(): Promise<void> {
     >
       <RouterLink
         to="/app"
-        class="flex h-16 items-center gap-2 border-b border-border px-5 text-lg font-bold text-primary"
+        class="flex h-16 items-center gap-2.5 border-b border-border px-5 text-lg font-bold text-primary"
       >
-        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent">
-          S
-        </span>
+        <BrandLogo :size="28" />
         StudyNest
       </RouterLink>
 
@@ -142,7 +141,14 @@ async function handleLogout(): Promise<void> {
             <Moon v-else :size="18" />
           </button>
 
+          <img
+            v-if="auth.profile?.avatarUrl"
+            :src="auth.profile.avatarUrl"
+            alt="Your profile avatar"
+            class="h-9 w-9 rounded-full bg-surface object-cover ring-1 ring-border"
+          />
           <div
+            v-else
             class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
           >
             {{ auth.user?.email?.charAt(0).toUpperCase() ?? '?' }}

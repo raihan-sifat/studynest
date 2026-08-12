@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { BookOpen, CheckSquare, LineChart, StickyNote, Timer } from '@lucide/vue'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 
 const features = [
   {
@@ -35,10 +36,8 @@ const features = [
   <div class="min-h-screen bg-background">
     <header class="border-b border-border bg-surface">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <div class="flex items-center gap-2 text-lg font-bold text-primary">
-          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent">
-            S
-          </span>
+        <div class="flex items-center gap-2.5 text-lg font-bold text-primary">
+          <BrandLogo :size="28" />
           StudyNest
         </div>
         <nav class="flex items-center gap-2">

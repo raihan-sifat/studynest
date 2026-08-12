@@ -2,10 +2,11 @@
 import { ref, watchEffect } from 'vue'
 import { z } from 'zod'
 import { useRouter } from 'vue-router'
-import { LogOut } from '@lucide/vue'
+import { Check, LogOut } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { isConfigured } from '@/services/supabase'
+import { AVATARS } from '@/avatars'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -62,6 +63,15 @@ async function saveProfile(): Promise<void> {
   } finally {
     saving.value = false
   }
+}
+
+function selectAvatar(src: string): void {
+  avatarUrl.value = src
+  fieldErrors.value.avatarUrl = undefined
+}
+
+function clearAvatar(): void {
+  avatarUrl.value = ''
 }
 
 async function sendResetEmail(): Promise<void> {
@@ -125,20 +135,50 @@ async function handleLogout(): Promise<void> {
           :error="fieldErrors.bio"
           hint="Optional — max 500 characters"
         />
+        <div class="flex flex-col gap-1.5">
+          <span class="text-sm font-medium text-primary">Avatar</span>
+          <div class="rounded-xl border border-border bg-background p-4">
+            <div class="grid grid-cols-4 gap-4">
+              <button
+                v-for="avatar in AVATARS"
+                :key="avatar.id"
+                type="button"
+                class="focus-ring relative flex items-center justify-center transition-transform hover:scale-105"
+                :aria-pressed="avatarUrl === avatar.src"
+                :aria-label="`Use the ${avatar.name} avatar`"
+                @click="selectAvatar(avatar.src)"
+              >
+                <img :src="avatar.src" :alt="avatar.name" class="h-12 w-12 sm:h-14 sm:w-14" />
+                <span
+                  v-if="avatarUrl === avatar.src"
+                  class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-accent shadow-card"
+                >
+                  <Check :size="12" stroke-width="3" />
+                </span>
+              </button>
+            </div>
+          </div>
+          <p class="text-sm text-muted">
+            Pick an avatar or paste a custom image link below. It will appear next to your name across the app.
+          </p>
+        </div>
         <BaseInput
           v-model="avatarUrl"
-          label="Avatar URL"
+          label="Custom image URL"
           type="url"
           placeholder="https://example.com/avatar.png"
           :error="fieldErrors.avatarUrl"
-          hint="Optional — a direct link to an image"
+          hint="Optional — overrides the picked avatar"
         />
 
         <p v-if="formError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
           {{ formError }}
         </p>
 
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
+          <BaseButton type="button" variant="secondary" :disabled="saving || auth.loading" @click="clearAvatar">
+            Remove avatar
+          </BaseButton>
           <BaseButton type="submit" :disabled="saving || auth.loading">
             {{ saving ? 'Saving…' : 'Save profile' }}
           </BaseButton>
