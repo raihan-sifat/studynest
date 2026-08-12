@@ -416,10 +416,38 @@ function confirmDiscard(): void {
             class="mt-4 w-36"
             @update:model-value="onCustomMinutes"
           />
-          <p class="mt-5 font-mono text-6xl font-semibold tabular-nums tracking-tight text-primary">
-            {{ timerMs !== null ? formatCountdown(timerMs) : '--:--' }}
-          </p>
-          <p class="mt-2 text-xs text-muted">A chime will play when the time is up.</p>
+          <div class="relative mt-5">
+            <svg
+              :key="timerMs ?? 'none'"
+              class="timer-setup-ring -rotate-90"
+              width="252"
+              height="252"
+              viewBox="0 0 252 252"
+              aria-hidden="true"
+            >
+              <circle cx="126" cy="126" :r="RING_RADIUS" fill="none" stroke-width="9" class="stroke-border" />
+              <circle
+                cx="126"
+                cy="126"
+                :r="RING_RADIUS"
+                fill="none"
+                stroke-width="9"
+                stroke-linecap="round"
+                class="stroke-accent"
+                :style="{ '--ring-c': `${RING_CIRCUMFERENCE}px` }"
+                :stroke-dasharray="RING_CIRCUMFERENCE"
+                :stroke-dashoffset="RING_CIRCUMFERENCE"
+              />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="font-mono text-5xl font-semibold tabular-nums tracking-tight text-primary">
+                {{ timerMs !== null ? formatCountdown(timerMs) : '--:--' }}
+              </span>
+              <p class="mt-2 max-w-56 text-xs text-muted">
+                The green ring counts down to zero when you start.
+              </p>
+            </div>
+          </div>
         </template>
 
         <template v-else>
