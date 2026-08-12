@@ -1,4 +1,4 @@
-import { format, startOfISOWeek, startOfMonth, startOfToday, subMonths } from 'date-fns'
+import { addDays, format, startOfDay, startOfISOWeek, startOfMonth, startOfToday, subMonths } from 'date-fns'
 import type { StudySession } from '@/types'
 
 export type PeriodKey = 'day' | 'week' | 'month'
@@ -51,6 +51,13 @@ export function sessionDurationMinutes(session: StudySession): number {
 
 export function totalMinutes(sessions: StudySession[]): number {
   return sessions.reduce((sum, session) => sum + sessionDurationMinutes(session), 0)
+}
+
+export function averageSessionMinutes(sessions: StudySession[]): number {
+  if (sessions.length === 0) {
+    return 0
+  }
+  return Math.round(totalMinutes(sessions) / sessions.length)
 }
 
 export function periodStart(key: PeriodKey): Date {
@@ -109,4 +116,23 @@ export function percentChange(current: number, previous: number): number | null 
     return current > 0 ? null : 0
   }
   return Math.round(((current - previous) / previous) * 100)
+}
+
+export function minutesPerDay(sessions: StudySession[], weekStart: Date): number[] {
+  const out = Array.from({ length: 7 }, () => 0)
+  const weekStartDay = startOfDay(weekStart).getTime()
+  for (const session of sessions) {
+    const started = new Date(session.startedAt)
+    const dayIndex = Math.floor(
+      (startOfDay(started).getTime() - weekStartDay) / (24 * 60 * 60 * 1000),
+    )
+    if (dayIndex >= 0 && dayIndex < 7) {
+      out[dayIndex] += sessionDurationMinutes(session)
+    }
+  }
+  return out
+}
+
+export function weekdayLabels(weekStart: Date): string[] {
+  return Array.from({ length: 7 }, (_, index) => format(addDays(weekStart, index), 'EEE'))
 }

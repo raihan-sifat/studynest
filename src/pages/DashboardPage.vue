@@ -9,6 +9,7 @@ import { useGoalsStore } from '@/stores/goals'
 import { useCoursesStore } from '@/stores/courses'
 import { formatMinutes, formatSessionTime, minutesPerMonth, percentChange, totalMinutesBetween } from '@/utils/time'
 import { goalProgressPercent } from '@/utils/progress'
+import { courseStatusCounts, taskCompletionStats } from '@/utils/stats'
 import { downloadCsv, toCsv } from '@/utils/csv'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -85,17 +86,12 @@ const previousStudyMinutes = computed(() => {
 
 const studyTrend = computed(() => percentChange(studyMinutes.value, previousStudyMinutes.value))
 
-const totalTasks = computed(() => tasksStore.tasks.length)
-const doneTasks = computed(() => tasksStore.tasks.filter((task) => task.status === 'done').length)
-const taskPercent = computed(() =>
-  totalTasks.value === 0 ? 0 : Math.round((doneTasks.value / totalTasks.value) * 100),
-)
+const taskStats = computed(() => taskCompletionStats(tasksStore.tasks))
+const totalTasks = computed(() => taskStats.value.total)
+const doneTasks = computed(() => taskStats.value.done)
+const taskPercent = computed(() => taskStats.value.percent)
 
-const courseCounts = computed(() => ({
-  active: coursesStore.courses.filter((course) => course.status === 'active').length,
-  completed: coursesStore.courses.filter((course) => course.status === 'completed').length,
-  archived: coursesStore.courses.filter((course) => course.status === 'archived').length,
-}))
+const courseCounts = computed(() => courseStatusCounts(coursesStore.courses))
 const totalCourses = computed(() => coursesStore.courses.length)
 
 const segmentPercent = (count: number) =>

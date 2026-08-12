@@ -6,11 +6,17 @@ import { cssVar, hexToRgba } from '@/utils/chartColors'
 
 Chart.register(...registerables)
 
-const props = defineProps<{
-  labels: string[]
-  values: number[]
-  label?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    labels: string[]
+    values: number[]
+    label?: string
+    horizontal?: boolean
+  }>(),
+  {
+    horizontal: false,
+  },
+)
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const theme = useThemeStore()
@@ -25,6 +31,8 @@ function build(): void {
     chart.destroy()
   }
   const border = cssVar('--color-border')
+  const valueScale = props.horizontal ? 'x' : 'y'
+  const categoryScale = props.horizontal ? 'y' : 'x'
   chart = new Chart(canvas, {
     type: 'bar',
     data: {
@@ -36,13 +44,14 @@ function build(): void {
           backgroundColor: cssVar('--color-accent'),
           borderRadius: 6,
           borderSkipped: false,
-          maxBarThickness: 28,
+          maxBarThickness: props.horizontal ? 18 : 28,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      indexAxis: props.horizontal ? 'y' : 'x',
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -55,17 +64,17 @@ function build(): void {
           padding: 10,
           displayColors: false,
           callbacks: {
-            label: (ctx) => `${ctx.parsed.y} min`,
+            label: (ctx) => `${ctx.parsed[props.horizontal ? 'x' : 'y']} min`,
           },
         },
       },
       scales: {
-        x: {
+        [categoryScale]: {
           grid: { display: false },
           border: { display: false },
           ticks: { color: cssVar('--color-secondary'), font: { size: 11 } },
         },
-        y: {
+        [valueScale]: {
           beginAtZero: true,
           border: { display: false },
           grid: {
