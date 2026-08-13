@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://studynest-ruddy.vercel.app/sitemap.xml
