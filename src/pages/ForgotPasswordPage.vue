@@ -70,7 +70,7 @@ async function submit(): Promise<void> {
 
     <p class="mt-6 text-center text-sm text-secondary">
       Remembered it?
-      <RouterLink to="/login" class="font-medium text-accent hover:underline">Log in</RouterLink>
+      <RouterLink to="/auth/login" class="font-medium text-accent hover:underline">Log in</RouterLink>
     </p>
   </div>
 </template>

@@ -107,7 +107,7 @@ async function submit(): Promise<void> {
 
     <p class="mt-6 text-center text-sm text-secondary">
       Already have an account?
-      <RouterLink to="/login" class="font-medium text-accent hover:underline">
+      <RouterLink to="/auth/login" class="font-medium text-accent hover:underline">
         Log in
       </RouterLink>
     </p>

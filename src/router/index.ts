@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AuthLayout from '@/layouts/AuthLayout.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -19,28 +20,34 @@ const router = createRouter({
       meta: { title: 'StudyNest — Organize Your Learning & Track Progress' },
     },
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/pages/LoginPage.vue'),
-      meta: { guestOnly: true, title: 'Login — StudyNest' },
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('@/pages/RegisterPage.vue'),
-      meta: { guestOnly: true, title: 'Create Account — StudyNest' },
-    },
-    {
-      path: '/forgot-password',
-      name: 'forgot-password',
-      component: () => import('@/pages/ForgotPasswordPage.vue'),
-      meta: { guestOnly: true, title: 'Forgot Password — StudyNest' },
-    },
-    {
-      path: '/reset-password',
-      name: 'reset-password',
-      component: () => import('@/pages/ResetPasswordPage.vue'),
-      meta: { title: 'Reset Password — StudyNest' },
+      path: '/auth',
+      component: AuthLayout,
+      children: [
+        {
+          path: 'login',
+          name: 'login',
+          component: () => import('@/pages/LoginPage.vue'),
+          meta: { guestOnly: true, title: 'Login — StudyNest' },
+        },
+        {
+          path: 'register',
+          name: 'register',
+          component: () => import('@/pages/RegisterPage.vue'),
+          meta: { guestOnly: true, title: 'Create Account — StudyNest' },
+        },
+        {
+          path: 'forgot-password',
+          name: 'forgot-password',
+          component: () => import('@/pages/ForgotPasswordPage.vue'),
+          meta: { guestOnly: true, title: 'Forgot Password — StudyNest' },
+        },
+        {
+          path: 'reset-password',
+          name: 'reset-password',
+          component: () => import('@/pages/ResetPasswordPage.vue'),
+          meta: { title: 'Reset Password — StudyNest' },
+        },
+      ],
     },
     {
       path: '/app',

@@ -42,13 +42,13 @@ const features = [
         </div>
         <nav class="flex items-center gap-2">
           <RouterLink
-            to="/login"
+            to="/auth/login"
             class="focus-ring inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-secondary transition-colors hover:bg-background hover:text-primary"
           >
             Log in
           </RouterLink>
           <RouterLink
-            to="/register"
+            to="/auth/register"
             class="focus-ring inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-on-accent transition-colors hover:bg-accent/90"
           >
             Get started
@@ -70,13 +70,13 @@ const features = [
         </p>
         <div class="mt-10 flex items-center justify-center gap-3">
           <RouterLink
-            to="/register"
+            to="/auth/register"
             class="focus-ring inline-flex h-12 items-center justify-center rounded-lg bg-accent px-6 text-base font-medium text-on-accent transition-colors hover:bg-accent/90"
           >
             Start studying free
           </RouterLink>
           <RouterLink
-            to="/login"
+            to="/auth/login"
             class="focus-ring inline-flex h-12 items-center justify-center rounded-lg border border-border bg-surface px-6 text-base font-medium text-primary transition-colors hover:bg-background"
           >
             Log in

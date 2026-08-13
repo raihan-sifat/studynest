@@ -71,7 +71,7 @@ async function submit(): Promise<void> {
 
       <div class="flex items-center justify-between">
         <RouterLink
-          to="/forgot-password"
+          to="/auth/forgot-password"
           class="text-sm font-medium text-accent hover:underline"
         >
           Forgot password?
@@ -85,7 +85,7 @@ async function submit(): Promise<void> {
 
     <p class="mt-6 text-center text-sm text-secondary">
       New to StudyNest?
-      <RouterLink to="/register" class="font-medium text-accent hover:underline">
+      <RouterLink to="/auth/register" class="font-medium text-accent hover:underline">
         Create an account
       </RouterLink>
     </p>
